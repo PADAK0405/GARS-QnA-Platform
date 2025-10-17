@@ -165,7 +165,6 @@ app.use(helmet({
             baseUri: ["'self'"],
             formAction: ["'self'"],
             frameAncestors: ["'self'"]
-            // upgradeInsecureRequests 제거 - HTTP 업그레이드 방지
         }
     },
     crossOriginEmbedderPolicy: false
