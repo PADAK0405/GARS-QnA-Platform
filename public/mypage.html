@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gaon QandA - 마이페이지</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="description" content="내가 올린 질문과 답변을 관리하는 마이페이지">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">Gaon QandA</a>
+        <div id="auth-container"></div>
+    </nav>
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">마이페이지</h1>
+            <div class="page-actions">
+                <button class="secondary-btn" id="edit-profile-btn">프로필 수정</button>
+                <button class="secondary-btn" id="refresh-btn">새로고침</button>
+            </div>
+        </div>
+        
+        <div class="profile-section">
+            <div class="profile-card">
+                <div class="profile-info">
+                    <div class="profile-avatar">
+                        <span id="user-initial">U</span>
+                        <div class="level-badge" id="level-badge">Lv.1</div>
+                    </div>
+                    <div class="profile-details">
+                        <div class="profile-header">
+                            <h2 id="user-name">사용자</h2>
+                            <span class="level-title" id="level-title">새로운 멤버</span>
+                        </div>
+                        <p id="user-email">email@example.com</p>
+                        <div class="status-message" id="status-message">
+                            <span id="status-text">상태메시지를 설정해보세요!</span>
+                        </div>
+                        
+                        <!-- EXP 진행률 바 -->
+                        <div class="exp-progress">
+                            <div class="exp-info">
+                                <span class="exp-label">EXP</span>
+                                <span class="exp-current" id="exp-current">0</span>
+                                <span class="exp-separator">/</span>
+                                <span class="exp-next" id="exp-next">100</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+                            </div>
+                            <div class="exp-to-next" id="exp-to-next">다음 레벨까지 100 EXP</div>
+                        </div>
+                        
+                        <div class="profile-stats">
+                            <div class="stat-item">
+                                <span class="stat-number" id="user-score">0</span>
+                                <span class="stat-label">점수</span>
+                            </div>
+                            <div class="stat-item points-item">
+                                <span class="stat-number" id="user-points">0</span>
+                                <span class="stat-label">포인트</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number" id="question-count">0</span>
+                                <span class="stat-label">질문</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number" id="answer-count">0</span>
+                                <span class="stat-label">답변</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="questions">내 질문</button>
+            <button class="tab-btn" data-tab="answers">내 답변</button>
+        </div>
+        
+        <div class="tab-content">
+            <div id="questions-tab" class="tab-panel active">
+                <div class="section-header">
+                    <h3>내가 올린 질문</h3>
+                    <span class="count-badge" id="questions-count">0개</span>
+                </div>
+                <div id="my-questions-container"></div>
+            </div>
+            
+            <div id="answers-tab" class="tab-panel">
+                <div class="section-header">
+                    <h3>내가 작성한 답변</h3>
+                    <span class="count-badge" id="answers-count">0개</span>
+                </div>
+                <div id="my-answers-container"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="protection.js"></script>
+    <script src="script.js"></script>
+    <script src="mypage.js"></script>
+    <script src="csrf.js"></script>
+</body>
+</html>

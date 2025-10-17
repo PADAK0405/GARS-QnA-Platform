@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI에게 질문하기 - QnA Hub</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="index.html">Gaon QandA</a>
+            </div>
+            <div class="nav-menu" id="nav-menu">
+                <!-- script.js에서 동적으로 생성됩니다 -->
+            </div>
+            <div class="nav-auth" id="auth-container">
+                <!-- 인증 상태에 따라 동적으로 생성 -->
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        
+        <div class="ai-question-header">
+            <h1 class="page-title">Gaon AI</h1>
+        </div>
+
+        <div class="ai-question-container">
+            <div class="ai-question-card">
+                <div class="ai-info-section">
+                    <div class="ai-avatar">
+                        <div class="ai-icon">AI</div>
+                    </div>
+                    <div class="ai-info">
+                        <h2>Gaon AI</h2>
+                        <p>궁금한 것을 자유롭게 질문해보세요</p>
+                        <div class="ai-features">
+                            <span class="feature-tag">학습 도우미</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="question-form-section">
+                    <div class="form-group">
+                        <label for="ai-question-input" class="form-label">
+                            질문을 입력하세요
+                        </label>
+                        <textarea 
+                            id="ai-question-input" 
+                            placeholder="예: 정규표현식에 대해 알려주세요."
+                            rows="4"
+                        ></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">이미지 첨부 (선택)</label>
+                        <input type="file" id="ai-image-input" accept="image/*" multiple style="display: none;">
+                        <button type="button" id="upload-ai-image-btn" class="image-upload-btn">이미지 선택</button>
+                        <div id="ai-image-preview" class="image-preview"></div>
+                    </div>
+                    
+                    <div class="submit-section">
+                        <div class="cost-info">
+                            <span class="cost-text">질문당 50 포인트</span>
+                        </div>
+                        <button id="submit-ai-question" class="ai-submit-btn" enabled>
+                            Gaon AI에게 질문하기
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ai-response-section" id="ai-response-section" style="display: none;">
+                <div class="response-header">
+                    <h3>AI 응답</h3>
+                    <button id="clear-response" class="clear-btn">지우기</button>
+                </div>
+                <div class="ai-response" id="ai-response">
+                    <!-- AI 응답이 여기에 표시됩니다 -->
+                </div>
+            </div>
+        </div>
+
+        <div class="points-guide">
+            <h3>포인트 획득 방법</h3>
+            <div class="guide-grid">
+                <div class="guide-item">
+                    <div class="guide-icon">Q</div>
+                    <div class="guide-content">
+                        <h4>질문 작성</h4>
+                        <p>새로운 질문을 작성하면 <strong>3 포인트</strong>를 획득할 수 있습니다.</p>
+                    </div>
+                </div>
+                <div class="guide-item">
+                    <div class="guide-icon">A</div>
+                    <div class="guide-content">
+                        <h4>답변 작성</h4>
+                        <p>다른 사용자의 질문에 답변하면 <strong>10 포인트</strong>를 획득할 수 있습니다.</p>
+                    </div>
+                </div>
+                <div class="guide-item">
+                    <div class="guide-icon">AI</div>
+                    <div class="guide-content">
+                        <h4>AI 질문</h4>
+                        <p>50 포인트가 있으면 AI에게 질문할 수 있습니다.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 토스트 알림 -->
+    <div id="toast" class="toast"></div>
+
+    <script src="protection.js"></script>
+    <script src="script.js"></script>
+    <script src="csrf.js"></script>
+    <script>
+        let currentUser = null;
+        let isSubmitting = false;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadUserInfo();
+            setupEventListeners();
+            updatePointsInfo();
+            
+            // 포인트 정보를 주기적으로 업데이트 (30초마다)
+            setInterval(async () => {
+                await loadUserInfo();
+                updatePointsInfo();
+            }, 30000);
+        });
+
+        async function loadUserInfo() {
+            try {
+                const response = await fetch('/api/user');
+                if (!response.ok) {
+                    window.location.href = '/login';
+                    return;
+                }
+                currentUser = await response.json();
+                console.log('사용자 정보:', currentUser);
+            } catch (error) {
+                console.error('사용자 정보 로드 실패:', error);
+                window.location.href = '/login';
+            }
+        }
+
+        function setupEventListeners() {
+            const submitBtn = document.getElementById('submit-ai-question');
+            const questionInput = document.getElementById('ai-question-input');
+            const clearBtn = document.getElementById('clear-response');
+            const uploadBtn = document.getElementById('upload-ai-image-btn');
+            const imageInput = document.getElementById('ai-image-input');
+
+            submitBtn.addEventListener('click', submitAIQuestion);
+            
+            questionInput.addEventListener('input', () => {
+                const hasText = questionInput.value.trim().length > 0;
+                const hasPoints = currentUser && currentUser.levelInfo && currentUser.levelInfo.points && currentUser.levelInfo.points.canAskAI;
+                submitBtn.disabled = !hasText || !hasPoints || isSubmitting;
+            });
+
+            clearBtn.addEventListener('click', clearResponse);
+            
+            uploadBtn.addEventListener('click', () => imageInput.click());
+            imageInput.addEventListener('change', handleImageSelect);
+        }
+        
+        function handleImageSelect(event) {
+            const files = Array.from(event.target.files);
+            const maxFiles = 3;
+            
+            if (files.length > maxFiles) {
+                showToast(`최대 ${maxFiles}개의 이미지만 업로드할 수 있습니다.`, 'warning');
+                return;
+            }
+            
+            displayImagePreviews(files);
+        }
+        
+        function displayImagePreviews(files) {
+            const previewContainer = document.getElementById('ai-image-preview');
+            previewContainer.innerHTML = '';
+            
+            files.forEach((file, index) => {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const previewDiv = document.createElement('div');
+                        previewDiv.className = 'image-preview-item';
+                        previewDiv.innerHTML = `
+                            <img src="${e.target.result}" alt="미리보기">
+                            <button type="button" class="remove-image-btn" onclick="removeImage(${index})">×</button>
+                        `;
+                        previewContainer.appendChild(previewDiv);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+        
+        function removeImage(index) {
+            const imageInput = document.getElementById('ai-image-input');
+            const dt = new DataTransfer();
+            const files = Array.from(imageInput.files);
+            
+            files.forEach((file, i) => {
+                if (i !== index) {
+                    dt.items.add(file);
+                }
+            });
+            
+            imageInput.files = dt.files;
+            displayImagePreviews(Array.from(imageInput.files));
+        }
+
+        async function updatePointsInfo() {
+            const pointsInfo = document.getElementById('points-info');
+            if (!currentUser || !currentUser.levelInfo || !currentUser.levelInfo.points) {
+                pointsInfo.innerHTML = '<div class="points-loading">포인트 정보를 불러오는 중...</div>';
+                return;
+            }
+
+            const points = currentUser.levelInfo.points;
+            const progressPercent = points.progress || 0;
+            
+            pointsInfo.innerHTML = `
+                <div class="points-display">
+                    <div class="points-current">
+                        <span class="points-icon">💎</span>
+                        <span class="points-value">${points.current || 0}</span>
+                        <span class="points-unit">포인트</span>
+                    </div>
+                    <div class="points-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${progressPercent}%"></div>
+                        </div>
+                        <div class="points-status">
+                            ${points.canAskAI 
+                                ? '<span class="status-available">✅ AI 질문 가능 (50포인트 소모)</span>' 
+                                : `<span class="status-needed">❌ AI 질문까지 ${points.needed || 50} 포인트 더 필요</span>`
+                            }
+                        </div>
+                        <div class="points-hint">
+                            💡 질문 작성(+3p) 또는 답변 작성(+10p)으로 포인트를 획득하세요!
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function submitAIQuestion() {
+            if (isSubmitting) return;
+
+            const questionInput = document.getElementById('ai-question-input');
+            const imageInput = document.getElementById('ai-image-input');
+            const responseSection = document.getElementById('ai-response-section');
+            const submitBtn = document.getElementById('submit-ai-question');
+
+            const question = questionInput.value.trim();
+            if (!question) return;
+
+            if (!currentUser.levelInfo.points.canAskAI) {
+                showToast('포인트가 부족합니다. 질문이나 답변을 작성해서 포인트를 획득하세요!', 'warning');
+                return;
+            }
+
+            isSubmitting = true;
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'AI가 답변 중...';
+
+            try {
+                // 이미지 업로드 처리
+                const formData = new FormData();
+                formData.append('question', question);
+                
+                const imageFiles = Array.from(imageInput.files);
+                for (let i = 0; i < imageFiles.length; i++) {
+                    formData.append('images', imageFiles[i]);
+                }
+
+                // CSRF 토큰 추가
+                formData.append('_csrf', window.csrfToken);
+                
+                const response = await fetch('/api/ai-question', {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    displayAIResponse(data.answer);
+                    questionInput.value = '';
+                    imageInput.value = '';
+                    document.getElementById('ai-image-preview').innerHTML = '';
+                    showToast('AI 질문이 완료되었습니다!', 'success');
+                    
+                    // 포인트 정보 업데이트
+                    await loadUserInfo();
+                    updatePointsInfo();
+                } else {
+                    const error = await response.json();
+                    if (response.status === 402) {
+                        showToast('포인트가 부족합니다.', 'error');
+                    } else {
+                        throw new Error(error.error || 'AI 질문에 실패했습니다.');
+                    }
+                }
+            } catch (error) {
+                console.error('AI 질문 실패:', error);
+                showToast(error.message, 'error');
+            } finally {
+                isSubmitting = false;
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'AI에게 질문하기';
+            }
+        }
+
+        function displayAIResponse(answer) {
+            const responseSection = document.getElementById('ai-response-section');
+            const responseDiv = document.getElementById('ai-response');
+            
+            responseDiv.innerHTML = `<div class="response-content">${answer}</div>`;
+            responseSection.style.display = 'block';
+            responseSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function clearResponse() {
+            const responseSection = document.getElementById('ai-response-section');
+            responseSection.style.display = 'none';
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type}`;
+            toast.style.display = 'flex';
+            toast.style.animation = 'slideIn 0.3s ease';
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => {
+                    toast.style.display = 'none';
+                }, 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

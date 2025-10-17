@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gaon QandA - 함께 성장하는 지식 커뮤니티</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="description" content="질문하고 답변하며 함께 성장하는 Gaon QandA 커뮤니티">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">Gaon QandA</a>
+        <div id="auth-container"></div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1 class="hero-title">함께 성장하는<br>지식 공유 커뮤니티</h1>
+            <p class="hero-subtitle">궁금한 것을 질문하고, 아는 것을 나누며 함께 배워가요</p>
+            <div class="hero-buttons">
+                <a href="/questions.html" class="hero-btn primary">질문 둘러보기</a>
+                <a href="/ask.html" class="hero-btn secondary">질문하기</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features">
+        <div class="container">
+            <h2 class="section-title">주요 기능</h2>
+            <div class="feature-grid">
+                <a href="/questions.html" class="feature-card">
+                    <div class="feature-icon">💭</div>
+                    <h3>질문 목록</h3>
+                    <p>커뮤니티의 다양한 질문을 확인하고 답변을 공유하세요</p>
+                </a>
+                
+                <a href="/ask.html" class="feature-card">
+                    <div class="feature-icon">📝</div>
+                    <h3>질문하기</h3>
+                    <p>궁금한 것이 있다면 언제든지 질문해보세요</p>
+                </a>
+                
+                <a href="/ranking.html" class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>답변 랭킹</h3>
+                    <p>활발한 활동으로 포인트를 쌓고 랭킹에 도전하세요</p>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Ad Space -->
+    <section class="ad-section">
+        <div class="container">
+            <div class="ad-container">
+                <div class="ad-placeholder">
+                    <p>광고 공간</p>
+                    <span>728 x 90</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats-section">
+        <div class="container">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-number" id="total-questions">-</div>
+                    <div class="stat-label">총 질문</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="total-answers">-</div>
+                    <div class="stat-label">총 답변</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="total-users">-</div>
+                    <div class="stat-label">활동 사용자</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="protection.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

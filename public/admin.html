@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gaon QandA - 관리자 대시보드</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="description" content="관리자 대시보드 - 사용자 및 콘텐츠 관리">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">Gaon QandA</a>
+        <div id="auth-container"></div>
+    </nav>
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">관리자 대시보드</h1>
+            <div class="page-actions">
+                <button class="secondary-btn" id="refresh-btn">새로고침</button>
+            </div>
+        </div>
+        
+        <!-- 통계 카드 -->
+        <div class="stats-grid" id="stats-container">
+            <div class="loading-placeholder">
+                <div class="loading-spinner"></div>
+                <p>통계를 불러오는 중...</p>
+            </div>
+        </div>
+        
+        <!-- 탭 네비게이션 -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="users">사용자 관리</button>
+            <button class="tab-btn" data-tab="questions">질문 관리</button>
+            <button class="tab-btn" data-tab="answers">답변 관리</button>
+            <button class="tab-btn" data-tab="reports">신고 관리</button>
+            <button class="tab-btn" data-tab="logs">관리 로그</button>
+        </div>
+        
+        <!-- 탭 콘텐츠 -->
+        <div class="tab-content">
+            <!-- 사용자 관리 탭 -->
+            <div id="users-tab" class="tab-panel active">
+                <div class="section-header">
+                    <h3>사용자 관리</h3>
+                    <div class="search-box">
+                        <input type="text" id="user-search" placeholder="사용자 검색...">
+                    </div>
+                </div>
+                <div id="users-container">
+                    <div class="loading-placeholder">
+                        <div class="loading-spinner"></div>
+                        <p>사용자 목록을 불러오는 중...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 질문 관리 탭 -->
+            <div id="questions-tab" class="tab-panel">
+                <div class="section-header">
+                    <h3>질문 관리</h3>
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" data-status="all">전체</button>
+                        <button class="filter-btn" data-status="active">활성</button>
+                        <button class="filter-btn" data-status="hidden">숨김</button>
+                    </div>
+                </div>
+                <div id="questions-container">
+                    <div class="loading-placeholder">
+                        <div class="loading-spinner"></div>
+                        <p>질문 목록을 불러오는 중...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 답변 관리 탭 -->
+            <div id="answers-tab" class="tab-panel">
+                <div class="section-header">
+                    <h3>답변 관리</h3>
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" data-status="all">전체</button>
+                        <button class="filter-btn" data-status="active">활성</button>
+                        <button class="filter-btn" data-status="hidden">숨김</button>
+                    </div>
+                </div>
+                <div id="answers-container">
+                    <div class="loading-placeholder">
+                        <div class="loading-spinner"></div>
+                        <p>답변 목록을 불러오는 중...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 신고 관리 탭 -->
+            <div id="reports-tab" class="tab-panel">
+                <div class="section-header">
+                    <h3>신고 관리</h3>
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" data-status="pending">대기중</button>
+                        <button class="filter-btn" data-status="reviewed">검토완료</button>
+                        <button class="filter-btn" data-status="resolved">해결됨</button>
+                        <button class="filter-btn" data-status="dismissed">기각됨</button>
+                        <button class="filter-btn" data-status="all">전체</button>
+                    </div>
+                    <button class="primary-btn" onclick="refreshReports()">새로고침</button>
+                </div>
+                <div id="reports-container">
+                    <div class="loading-placeholder">
+                        <div class="loading-spinner"></div>
+                        <p>신고 목록을 불러오는 중...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 관리 로그 탭 -->
+            <div id="logs-tab" class="tab-panel">
+                <div class="section-header">
+                    <h3>관리 로그</h3>
+                    <button class="secondary-btn" id="refresh-logs-btn">로그 새로고침</button>
+                </div>
+                <div id="logs-container">
+                    <div class="loading-placeholder">
+                        <div class="loading-spinner"></div>
+                        <p>관리 로그를 불러오는 중...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="protection.js"></script>
+    <script src="csrf.js"></script>
+    <script src="script.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>

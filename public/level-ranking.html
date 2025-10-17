@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>레벨 랭킹 - QnA Hub</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="index.html">Gaon QandA</a>
+            </div>
+            <div class="nav-menu" id="nav-menu">
+                <!-- script.js에서 동적으로 생성됩니다 -->
+            </div>
+            <div class="nav-auth" id="auth-container">
+                <!-- 인증 상태에 따라 동적으로 생성 -->
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="ranking-header">
+            <h1 class="page-title">레벨 랭킹</h1>
+            <p class="page-subtitle">높은 레벨의 사용자들을 확인해보세요</p>
+        </div>
+
+        <div class="ranking-tabs">
+            <a href="score-ranking.html" class="tab-link">점수 랭킹</a>
+            <a href="level-ranking.html" class="tab-link active">레벨 랭킹</a>
+        </div>
+
+        <div class="ranking-container">
+            <div class="ranking-card">
+                <div class="ranking-list" id="ranking-list">
+                    <!-- 랭킹 목록이 여기에 표시됩니다 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="protection.js"></script>
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', loadLevelRanking);
+
+        async function loadLevelRanking() {
+            console.log('레벨 랭킹 로드 시작');
+            try {
+                console.log('API 요청 중: /api/ranking/level');
+                const response = await fetch('/api/ranking/level');
+                console.log('API 응답 상태:', response.status);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('API 오류 응답:', errorText);
+                    throw new Error(`랭킹 정보를 불러올 수 없습니다. (${response.status})`);
+                }
+                
+                const rankings = await response.json();
+                console.log('랭킹 데이터:', rankings);
+                displayRankings(rankings, 'level');
+            } catch (error) {
+                console.error('레벨 랭킹 로드 실패:', error);
+                document.getElementById('ranking-list').innerHTML = 
+                    `<div class="error-message">랭킹 정보를 불러올 수 없습니다: ${error.message}</div>`;
+            }
+        }
+
+        function displayRankings(rankings, type) {
+            const rankingList = document.getElementById('ranking-list');
+            
+            if (rankings.length === 0) {
+                rankingList.innerHTML = '<div class="empty-message">아직 랭킹 데이터가 없습니다.</div>';
+                return;
+            }
+
+            const rankingHTML = rankings.map((user, index) => {
+                const rank = index + 1;
+                const medal = getMedal(rank);
+                const value = type === 'score' ? user.score : user.level;
+                const unit = type === 'score' ? '점' : '레벨';
+                
+                return `
+                    <div class="ranking-item ${index < 3 ? 'top-rank' : ''}">
+                        <div class="rank-number">
+                            ${medal ? `<span class="medal">${medal}</span>` : `<span class="rank">${rank}</span>`}
+                        </div>
+                        <div class="user-info">
+                            <div class="user-name">${user.displayName}</div>
+                            <div class="user-level">레벨 ${user.level || 1}</div>
+                        </div>
+                        <div class="user-value">
+                            <span class="value">${value}</span>
+                            <span class="unit">${unit}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            rankingList.innerHTML = rankingHTML;
+        }
+
+        function getMedal(rank) {
+            switch(rank) {
+                case 1: return '1st';
+                case 2: return '2nd';
+                case 3: return '3rd';
+                default: return null;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,288 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'GARS Q&A Platform - Simple Deployment'
+
+Parameters:
+  KeyName:
+    Type: String
+    Description: EC2 Key Pair name
+    Default: gars-keypair
+  
+  InstanceType:
+    Type: String
+    Description: EC2 instance type
+    Default: t2.micro
+    AllowedValues:
+      - t2.micro
+      - t2.small
+      - t3.micro
+      - t3.small
+  
+  DatabasePassword:
+    Type: String
+    Description: RDS Database password
+    Default: GarsPassword123!
+    NoEcho: true
+
+Resources:
+  # VPC and Networking
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: GARS-VPC
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: GARS-IGW
+
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [0, !GetAZs '']
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: GARS-Public-Subnet
+
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: GARS-RouteTable
+
+  DefaultPublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref RouteTable
+      SubnetId: !Ref PublicSubnet
+
+  # Security Groups
+  WebServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for GARS web server
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+          Description: SSH access
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: HTTP access
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: HTTPS access
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          CidrIp: 0.0.0.0/0
+          Description: Node.js app access
+      Tags:
+        - Key: Name
+          Value: GARS-WebServer-SG
+
+  DatabaseSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for RDS database
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          SourceSecurityGroupId: !Ref WebServerSecurityGroup
+          Description: MySQL access from web server
+      Tags:
+        - Key: Name
+          Value: GARS-Database-SG
+
+  # RDS Database
+  DatabaseSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnet group for GARS database
+      SubnetIds:
+        - !Ref PublicSubnet
+      Tags:
+        - Key: Name
+          Value: GARS-DB-SubnetGroup
+
+  Database:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: gars-database
+      DBName: qna_hub
+      DBInstanceClass: db.t3.micro
+      Engine: mysql
+      EngineVersion: '8.0'
+      MasterUsername: admin
+      MasterUserPassword: !Ref DatabasePassword
+      AllocatedStorage: 20
+      StorageType: gp2
+      VPCSecurityGroups:
+        - !Ref DatabaseSecurityGroup
+      DBSubnetGroupName: !Ref DatabaseSubnetGroup
+      BackupRetentionPeriod: 7
+      MultiAZ: false
+      PubliclyAccessible: true
+      Tags:
+        - Key: Name
+          Value: GARS-Database
+
+  # EC2 Instance
+  WebServerInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0c76973fbe0ee100c  # Amazon Linux 2 AMI
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      SecurityGroupIds:
+        - !Ref WebServerSecurityGroup
+      SubnetId: !Ref PublicSubnet
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+          yum install -y nodejs npm git
+          
+          # Install PM2 for process management
+          npm install -g pm2
+          
+          # Create application directory
+          mkdir -p /home/ec2-user/gars
+          cd /home/ec2-user/gars
+          
+          # Create a simple Node.js application for testing
+          cat > server.js << 'EOF'
+          const express = require('express');
+          const app = express();
+          const PORT = process.env.PORT || 3000;
+          
+          app.get('/', (req, res) => {
+            res.send(`
+              <html>
+                <head><title>GARS - AWS 배포 테스트</title></head>
+                <body>
+                  <h1>🎉 GARS가 AWS에서 성공적으로 실행 중입니다!</h1>
+                  <p>배포 시간: ${new Date().toLocaleString()}</p>
+                  <p>서버 상태: 정상</p>
+                  <p>다음 단계: 실제 GARS 애플리케이션을 업로드하세요.</p>
+                </body>
+              </html>
+            `);
+          });
+          
+          app.listen(PORT, () => {
+            console.log(\`서버가 포트 \${PORT}에서 실행 중입니다.\`);
+          });
+          EOF
+          
+          # Create package.json
+          cat > package.json << 'EOF'
+          {
+            "name": "gars-test",
+            "version": "1.0.0",
+            "main": "server.js",
+            "dependencies": {
+              "express": "^4.18.2"
+            }
+          }
+          EOF
+          
+          # Install dependencies
+          npm install
+          
+          # Create environment file
+          cat > .env << EOF
+          NODE_ENV=production
+          PORT=3000
+          DB_HOST=${Database.Endpoint.Address}
+          DB_USER=admin
+          DB_PASSWORD=${DatabasePassword}
+          DB_NAME=qna_hub
+          EOF
+          
+          # Start the application
+          pm2 start server.js --name gars-app
+          pm2 startup
+          pm2 save
+          
+          # Install and configure nginx
+          yum install -y nginx
+          systemctl start nginx
+          systemctl enable nginx
+          
+          # Configure nginx reverse proxy
+          cat > /etc/nginx/conf.d/gars.conf << EOF
+          server {
+              listen 80;
+              server_name _;
+              
+              location / {
+                  proxy_pass http://localhost:3000;
+                  proxy_http_version 1.1;
+                  proxy_set_header Upgrade \$http_upgrade;
+                  proxy_set_header Connection 'upgrade';
+                  proxy_set_header Host \$host;
+                  proxy_set_header X-Real-IP \$remote_addr;
+                  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto \$scheme;
+                  proxy_cache_bypass \$http_upgrade;
+              }
+          }
+          EOF
+          
+          systemctl reload nginx
+      Tags:
+        - Key: Name
+          Value: GARS-WebServer
+
+Outputs:
+  WebServerPublicIP:
+    Description: Public IP address of the web server
+    Value: !GetAtt WebServerInstance.PublicIp
+    Export:
+      Name: !Sub '${AWS::StackName}-WebServerIP'
+
+  DatabaseEndpoint:
+    Description: RDS instance endpoint
+    Value: !GetAtt Database.Endpoint.Address
+    Export:
+      Name: !Sub '${AWS::StackName}-DatabaseEndpoint'
+
+  WebsiteURL:
+    Description: Website URL
+    Value: !Sub 'http://${WebServerInstance.PublicIp}'
+    Export:
+      Name: !Sub '${AWS::StackName}-WebsiteURL'

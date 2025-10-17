@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gaon QandA - 질문 목록</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="description" content="질문하고 답변하며 함께 성장하는 Gaon QandA 커뮤니티">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">Gaon QandA</a>
+        <div id="auth-container"></div>
+    </nav>
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">최신 질문</h1>
+            <div class="page-actions">
+                <button class="secondary-btn" id="refresh-btn">새로고침</button>
+            </div>
+        </div>
+        <div class="questions-grid" id="questions-container"></div>
+    </div>
+    <a href="/ask.html" class="fab" title="질문하기" id="ask-fab">+</a>
+    <script src="protection.js"></script>
+    <script src="csrf.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
+
