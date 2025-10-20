@@ -402,8 +402,15 @@ async function restoreUser(userId) {
 // 질문/답변 관리 함수들
 async function loadQuestions(status = 'all') {
     try {
+        console.log('질문 로드 시작, 상태:', status);
         const response = await fetch('/api/admin/questions');
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const questions = await response.json();
+        console.log('받은 질문 데이터:', questions);
         
         // 상태별 필터링
         let filteredQuestions = questions;
@@ -412,6 +419,8 @@ async function loadQuestions(status = 'all') {
         } else if (status === 'hidden') {
             filteredQuestions = questions.filter(q => q.status === 'hidden');
         }
+        
+        console.log('필터링된 질문:', filteredQuestions);
         
         const container = document.getElementById('questions-container');
         
@@ -424,20 +433,31 @@ async function loadQuestions(status = 'all') {
             return;
         }
         
+        // 리스트 형태로 질문 표시
         container.innerHTML = `
             <div class="questions-list">
+                <div class="list-header">
+                    <div class="list-header-item">제목</div>
+                    <div class="list-header-item">작성자</div>
+                    <div class="list-header-item">상태</div>
+                    <div class="list-header-item">작성일</div>
+                    <div class="list-header-item">작업</div>
+                </div>
                 ${filteredQuestions.map(question => `
-                    <div class="question-item">
-                        <div class="question-header">
-                            <h4>${escapeHtml(question.title)}</h4>
-                            <span class="question-status ${question.status || 'active'}">${question.status || 'active'}</span>
+                    <div class="question-list-item">
+                        <div class="question-title">
+                            <strong>${escapeHtml(question.title || '제목 없음')}</strong>
+                            <div class="question-preview">${escapeHtml((question.content || '').substring(0, 80))}${(question.content || '').length > 80 ? '...' : ''}</div>
                         </div>
-                        <div class="question-content">
-                            <p>${escapeHtml(question.content.substring(0, 100))}${question.content.length > 100 ? '...' : ''}</p>
+                        <div class="question-author">
+                            ${escapeHtml(question.author?.name || 'Unknown')}
+                            ${question.author?.level ? `<span class="user-level">Lv.${question.author.level}</span>` : ''}
                         </div>
-                        <div class="question-meta">
-                            <span>작성자: ${escapeHtml(question.author?.name || 'Unknown')}</span>
-                            <span>작성일: ${formatDate(question.created_at)}</span>
+                        <div class="question-status">
+                            <span class="status-badge ${question.status || 'active'}">${getQuestionStatusText(question.status || 'active')}</span>
+                        </div>
+                        <div class="question-date">
+                            ${formatDate(question.created_at)}
                         </div>
                         <div class="question-actions">
                             ${question.status === 'hidden' ? 
@@ -449,32 +469,51 @@ async function loadQuestions(status = 'all') {
                     </div>
                 `).join('')}
             </div>`;
+            
+        console.log('질문 목록 렌더링 완료');
     } catch (error) {
         console.error('질문 로드 실패:', error);
         showToast('질문을 불러오는데 실패했습니다.', 'error');
+        
+        // 오류 시 빈 상태 표시
+        const container = document.getElementById('questions-container');
+        container.innerHTML = `
+            <div class="empty-state">
+                <h3>질문을 불러올 수 없습니다</h3>
+                <p>오류가 발생했습니다. 페이지를 새로고침해주세요.</p>
+            </div>`;
     }
 }
 
 async function loadAnswers(status = 'all') {
     try {
+        console.log('답변 로드 시작, 상태:', status);
+        
         // 모든 질문의 답변을 가져오기
         const questionsResponse = await fetch('/api/questions');
+        if (!questionsResponse.ok) {
+            throw new Error(`질문 조회 실패: ${questionsResponse.status}`);
+        }
         const questions = await questionsResponse.json();
         
         let allAnswers = [];
         for (const question of questions) {
             try {
                 const answersResponse = await fetch(`/api/questions/${question.id}/answers`);
-                const answers = await answersResponse.json();
-                allAnswers = allAnswers.concat(answers.map(answer => ({
-                    ...answer,
-                    questionTitle: question.title,
-                    questionId: question.id
-                })));
+                if (answersResponse.ok) {
+                    const answers = await answersResponse.json();
+                    allAnswers = allAnswers.concat(answers.map(answer => ({
+                        ...answer,
+                        questionTitle: question.title,
+                        questionId: question.id
+                    })));
+                }
             } catch (error) {
                 console.error(`질문 ${question.id}의 답변 로드 실패:`, error);
             }
         }
+        
+        console.log('받은 답변 데이터:', allAnswers);
         
         // 상태별 필터링
         let filteredAnswers = allAnswers;
@@ -483,6 +522,8 @@ async function loadAnswers(status = 'all') {
         } else if (status === 'hidden') {
             filteredAnswers = allAnswers.filter(a => a.status === 'hidden');
         }
+        
+        console.log('필터링된 답변:', filteredAnswers);
         
         const container = document.getElementById('answers-container');
         
@@ -495,20 +536,34 @@ async function loadAnswers(status = 'all') {
             return;
         }
         
+        // 리스트 형태로 답변 표시
         container.innerHTML = `
             <div class="answers-list">
+                <div class="list-header">
+                    <div class="list-header-item">질문</div>
+                    <div class="list-header-item">답변 내용</div>
+                    <div class="list-header-item">작성자</div>
+                    <div class="list-header-item">상태</div>
+                    <div class="list-header-item">작성일</div>
+                    <div class="list-header-item">작업</div>
+                </div>
                 ${filteredAnswers.map(answer => `
-                    <div class="answer-item">
-                        <div class="answer-header">
-                            <h4>질문: ${escapeHtml(answer.questionTitle)}</h4>
-                            <span class="answer-status ${answer.status || 'active'}">${answer.status || 'active'}</span>
+                    <div class="answer-list-item">
+                        <div class="answer-question">
+                            <strong>${escapeHtml(answer.questionTitle || '질문 제목 없음')}</strong>
                         </div>
                         <div class="answer-content">
-                            <p>${escapeHtml(answer.content.substring(0, 100))}${answer.content.length > 100 ? '...' : ''}</p>
+                            <div class="answer-preview">${escapeHtml((answer.content || '').substring(0, 60))}${(answer.content || '').length > 60 ? '...' : ''}</div>
                         </div>
-                        <div class="answer-meta">
-                            <span>작성자: ${escapeHtml(answer.author?.name || 'Unknown')}</span>
-                            <span>작성일: ${formatDate(answer.created_at)}</span>
+                        <div class="answer-author">
+                            ${escapeHtml(answer.author?.name || 'Unknown')}
+                            ${answer.author?.level ? `<span class="user-level">Lv.${answer.author.level}</span>` : ''}
+                        </div>
+                        <div class="answer-status">
+                            <span class="status-badge ${answer.status || 'active'}">${getQuestionStatusText(answer.status || 'active')}</span>
+                        </div>
+                        <div class="answer-date">
+                            ${formatDate(answer.created_at)}
                         </div>
                         <div class="answer-actions">
                             ${answer.status === 'hidden' ? 
@@ -520,9 +575,19 @@ async function loadAnswers(status = 'all') {
                     </div>
                 `).join('')}
             </div>`;
+            
+        console.log('답변 목록 렌더링 완료');
     } catch (error) {
         console.error('답변 로드 실패:', error);
         showToast('답변을 불러오는데 실패했습니다.', 'error');
+        
+        // 오류 시 빈 상태 표시
+        const container = document.getElementById('answers-container');
+        container.innerHTML = `
+            <div class="empty-state">
+                <h3>답변을 불러올 수 없습니다</h3>
+                <p>오류가 발생했습니다. 페이지를 새로고침해주세요.</p>
+            </div>`;
     }
 }
 
@@ -690,6 +755,14 @@ function getStatusText(status) {
         'active': '활성',
         'suspended': '정지',
         'banned': '차단'
+    };
+    return statusMap[status] || status;
+}
+
+function getQuestionStatusText(status) {
+    const statusMap = {
+        'active': '활성',
+        'hidden': '숨김'
     };
     return statusMap[status] || status;
 }

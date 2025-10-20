@@ -7,6 +7,211 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
     <meta name="description" content="관리자 대시보드 - 사용자 및 콘텐츠 관리">
+    <style>
+        /* 리스트 형태 스타일 */
+        .questions-list, .answers-list {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .list-header {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+            background: #f8f9fa;
+            padding: 15px 20px;
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 2px solid #e9ecef;
+        }
+        
+        .answers-list .list-header {
+            grid-template-columns: 1.5fr 2fr 1fr 1fr 1fr 1fr;
+        }
+        
+        .list-header-item {
+            padding: 0 10px;
+        }
+        
+        .question-list-item, .answer-list-item {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+            align-items: center;
+            transition: background-color 0.2s;
+        }
+        
+        .answer-list-item {
+            grid-template-columns: 1.5fr 2fr 1fr 1fr 1fr 1fr;
+        }
+        
+        .question-list-item:hover, .answer-list-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .question-list-item:last-child, .answer-list-item:last-child {
+            border-bottom: none;
+        }
+        
+        .question-title {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .question-title strong {
+            color: #212529;
+            font-size: 16px;
+            line-height: 1.4;
+        }
+        
+        .question-preview, .answer-preview {
+            color: #6c757d;
+            font-size: 14px;
+            line-height: 1.3;
+        }
+        
+        .answer-question strong {
+            color: #495057;
+            font-size: 14px;
+        }
+        
+        .answer-content {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .question-author, .answer-author {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            font-size: 14px;
+        }
+        
+        .user-level {
+            background: #007bff;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 500;
+            display: inline-block;
+            width: fit-content;
+        }
+        
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            text-align: center;
+            display: inline-block;
+            min-width: 60px;
+        }
+        
+        .status-badge.active {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-badge.hidden {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .question-date, .answer-date {
+            font-size: 14px;
+            color: #6c757d;
+        }
+        
+        .question-actions, .answer-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .action-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .action-btn.success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .action-btn.success:hover {
+            background: #218838;
+        }
+        
+        .action-btn.warning {
+            background: #ffc107;
+            color: #212529;
+        }
+        
+        .action-btn.warning:hover {
+            background: #e0a800;
+        }
+        
+        .action-btn.danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .action-btn.danger:hover {
+            background: #c82333;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+        
+        .empty-state h3 {
+            margin-bottom: 10px;
+            color: #495057;
+        }
+        
+        /* 반응형 디자인 */
+        @media (max-width: 1200px) {
+            .list-header, .question-list-item, .answer-list-item {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .list-header-item {
+                display: none;
+            }
+            
+            .question-list-item > div, .answer-list-item > div {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 5px 0;
+            }
+            
+            .question-list-item > div:before, .answer-list-item > div:before {
+                content: attr(data-label);
+                font-weight: 600;
+                color: #495057;
+                min-width: 80px;
+            }
+            
+            .question-title, .answer-content {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: flex-start;
+            }
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar">
