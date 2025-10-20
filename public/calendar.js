@@ -17,12 +17,10 @@ class Calendar {
 
     async checkAuth() {
         try {
-            const response = await fetch('/api/auth/status');
-            const data = await response.json();
-            
-            if (data.authenticated) {
-                this.isAdmin = data.user.is_admin === 1;
-                this.renderAuthButtons(data.user);
+            // 홈페이지의 인증 시스템 사용
+            if (typeof currentUser !== 'undefined' && currentUser) {
+                this.isAdmin = currentUser.is_admin === 1;
+                this.renderAuthButtons(currentUser);
             } else {
                 this.renderLoginButton();
             }
@@ -35,7 +33,8 @@ class Calendar {
     renderAuthButtons(user) {
         const authContainer = document.getElementById('auth-container');
         authContainer.innerHTML = `
-            <div class="auth-buttons">
+            <div class="user-info">
+                <span class="user-name">${user.display_name || user.name}</span>
                 <a href="/mypage.html" class="auth-btn">마이페이지</a>
                 <button onclick="logout()" class="auth-btn logout">로그아웃</button>
             </div>
@@ -45,9 +44,7 @@ class Calendar {
     renderLoginButton() {
         const authContainer = document.getElementById('auth-container');
         authContainer.innerHTML = `
-            <div class="auth-buttons">
-                <button onclick="login()" class="auth-btn">로그인</button>
-            </div>
+            <a href="/auth/google" class="login-btn">Google로 로그인</a>
         `;
     }
 
@@ -327,7 +324,7 @@ function closeEventModal() {
 
 // 로그인 함수
 function login() {
-    window.location.href = '/';
+    window.location.href = '/auth/google';
 }
 
 // 로그아웃 함수
