@@ -275,12 +275,28 @@ async function loadQuestions() {
         return;
     }
     
+    // 임시 테스트 HTML 추가
+    questionsContainer.innerHTML = `
+        <div style="background: red; color: white; padding: 20px; margin: 10px;">
+            <h2>임시 테스트 - 질문 ${questions.length}개 로드됨</h2>
+        </div>
+    `;
+    
+    // 3초 후 실제 리스트 표시
+    setTimeout(() => {
+        renderQuestionsList(questions);
+    }, 3000);
+}
+
+function renderQuestionsList(questions) {
+    const questionsContainer = document.getElementById('questions-container');
+    
     // 리스트 형태로 질문 표시
     console.log('리스트 형태로 질문 렌더링 시작...');
     
     const listHTML = `
-        <div class="questions-list">
-            <div class="list-header">
+        <div class="questions-list" style="border: 3px solid red; background: yellow;">
+            <div class="list-header" style="background: blue; color: white;">
                 <div class="list-header-item">제목</div>
                 <div class="list-header-item">작성자</div>
                 <div class="list-header-item">통계</div>
@@ -288,7 +304,7 @@ async function loadQuestions() {
                 <div class="list-header-item">작업</div>
             </div>
             ${questions.map(q => `
-                <div class="question-list-item" data-question-id="${q.id}">
+                <div class="question-list-item" data-question-id="${q.id}" style="border: 2px solid green; background: lightblue;">
                     <div class="question-title">
                         <h4>${escapeHtml(q.title)}</h4>
                         <div class="question-preview">${escapeHtml(q.content.substring(0, 80))}${q.content.length > 80 ? '...' : ''}</div>
@@ -325,11 +341,22 @@ async function loadQuestions() {
     console.log('생성된 HTML 길이:', listHTML.length);
     questionsContainer.innerHTML = listHTML;
     console.log('questions-container innerHTML 설정 완료');
+    
+    // DOM 요소 생성 확인
+    const questionsList = questionsContainer.querySelector('.questions-list');
+    const questionItems = questionsContainer.querySelectorAll('.question-list-item');
+    console.log('questions-list 요소:', questionsList);
+    console.log('question-list-item 개수:', questionItems.length);
+    
+    if (questionsList) {
+        console.log('questions-list 스타일:', window.getComputedStyle(questionsList));
+        console.log('questions-list display:', window.getComputedStyle(questionsList).display);
+        console.log('questions-list visibility:', window.getComputedStyle(questionsList).visibility);
+    }
         
-        console.log('질문 목록 렌더링 완료');
+    console.log('질문 목록 렌더링 완료');
         
         // 질문 리스트 아이템 클릭 이벤트 추가
-        const questionItems = questionsContainer.querySelectorAll('.question-list-item');
         questionItems.forEach(item => {
             item.addEventListener('click', (e) => {
                 // 버튼 클릭이 아닌 경우에만 상세보기로 이동

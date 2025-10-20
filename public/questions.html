@@ -165,7 +165,18 @@
             color: #495057;
         }
         
-        /* 기존 카드 형태 숨기기 - 리스트 형태가 활성화되면 자동으로 숨겨짐 */
+        /* 강제로 리스트 형태 표시 */
+        .questions-list {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+        
+        .question-list-item {
+            display: grid !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
         
         /* 반응형 디자인 */
         @media (max-width: 1200px) {
