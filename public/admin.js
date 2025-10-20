@@ -201,8 +201,10 @@ function setupTabs() {
             // 해당 탭의 데이터 로드
             if (targetTab === 'questions') {
                 loadQuestions();
+                setupQuestionsFilters();
             } else if (targetTab === 'answers') {
                 loadAnswers();
+                setupAnswersFilters();
             } else if (targetTab === 'reports') {
                 loadReports();
             }
@@ -398,30 +400,256 @@ async function restoreUser(userId) {
 }
 
 // 질문/답변 관리 함수들
-async function loadQuestions() {
+async function loadQuestions(status = 'all') {
     try {
         const response = await fetch('/api/questions');
         const questions = await response.json();
         
+        // 상태별 필터링
+        let filteredQuestions = questions;
+        if (status === 'active') {
+            filteredQuestions = questions.filter(q => q.status === 'active' || !q.status);
+        } else if (status === 'hidden') {
+            filteredQuestions = questions.filter(q => q.status === 'hidden');
+        }
+        
         const container = document.getElementById('questions-container');
-        // 질문 관리 테이블 구현
+        
+        if (filteredQuestions.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <h3>질문이 없습니다</h3>
+                    <p>선택한 상태의 질문이 없습니다.</p>
+                </div>`;
+            return;
+        }
+        
         container.innerHTML = `
-            <div class="empty-state">
-                <h3>질문 관리 기능</h3>
-                <p>질문 숨기기/복원 기능을 구현할 수 있습니다.</p>
+            <div class="questions-list">
+                ${filteredQuestions.map(question => `
+                    <div class="question-item">
+                        <div class="question-header">
+                            <h4>${escapeHtml(question.title)}</h4>
+                            <span class="question-status ${question.status || 'active'}">${question.status || 'active'}</span>
+                        </div>
+                        <div class="question-content">
+                            <p>${escapeHtml(question.content.substring(0, 100))}${question.content.length > 100 ? '...' : ''}</p>
+                        </div>
+                        <div class="question-meta">
+                            <span>작성자: ${escapeHtml(question.author?.name || 'Unknown')}</span>
+                            <span>작성일: ${formatDate(question.created_at)}</span>
+                        </div>
+                        <div class="question-actions">
+                            ${question.status === 'hidden' ? 
+                                `<button class="action-btn success" onclick="toggleQuestionStatus(${question.id}, 'active')">복원</button>` :
+                                `<button class="action-btn warning" onclick="toggleQuestionStatus(${question.id}, 'hidden')">숨기기</button>`
+                            }
+                            <button class="action-btn danger" onclick="deleteQuestion(${question.id})">삭제</button>
+                        </div>
+                    </div>
+                `).join('')}
             </div>`;
     } catch (error) {
         console.error('질문 로드 실패:', error);
+        showToast('질문을 불러오는데 실패했습니다.', 'error');
     }
 }
 
-async function loadAnswers() {
-    const container = document.getElementById('answers-container');
-    container.innerHTML = `
-        <div class="empty-state">
-            <h3>답변 관리 기능</h3>
-            <p>답변 숨기기/복원 기능을 구현할 수 있습니다.</p>
-        </div>`;
+async function loadAnswers(status = 'all') {
+    try {
+        // 모든 질문의 답변을 가져오기
+        const questionsResponse = await fetch('/api/questions');
+        const questions = await questionsResponse.json();
+        
+        let allAnswers = [];
+        for (const question of questions) {
+            try {
+                const answersResponse = await fetch(`/api/questions/${question.id}/answers`);
+                const answers = await answersResponse.json();
+                allAnswers = allAnswers.concat(answers.map(answer => ({
+                    ...answer,
+                    questionTitle: question.title,
+                    questionId: question.id
+                })));
+            } catch (error) {
+                console.error(`질문 ${question.id}의 답변 로드 실패:`, error);
+            }
+        }
+        
+        // 상태별 필터링
+        let filteredAnswers = allAnswers;
+        if (status === 'active') {
+            filteredAnswers = allAnswers.filter(a => a.status === 'active' || !a.status);
+        } else if (status === 'hidden') {
+            filteredAnswers = allAnswers.filter(a => a.status === 'hidden');
+        }
+        
+        const container = document.getElementById('answers-container');
+        
+        if (filteredAnswers.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <h3>답변이 없습니다</h3>
+                    <p>선택한 상태의 답변이 없습니다.</p>
+                </div>`;
+            return;
+        }
+        
+        container.innerHTML = `
+            <div class="answers-list">
+                ${filteredAnswers.map(answer => `
+                    <div class="answer-item">
+                        <div class="answer-header">
+                            <h4>질문: ${escapeHtml(answer.questionTitle)}</h4>
+                            <span class="answer-status ${answer.status || 'active'}">${answer.status || 'active'}</span>
+                        </div>
+                        <div class="answer-content">
+                            <p>${escapeHtml(answer.content.substring(0, 100))}${answer.content.length > 100 ? '...' : ''}</p>
+                        </div>
+                        <div class="answer-meta">
+                            <span>작성자: ${escapeHtml(answer.author?.name || 'Unknown')}</span>
+                            <span>작성일: ${formatDate(answer.created_at)}</span>
+                        </div>
+                        <div class="answer-actions">
+                            ${answer.status === 'hidden' ? 
+                                `<button class="action-btn success" onclick="toggleAnswerStatus(${answer.id}, 'active')">복원</button>` :
+                                `<button class="action-btn warning" onclick="toggleAnswerStatus(${answer.id}, 'hidden')">숨기기</button>`
+                            }
+                            <button class="action-btn danger" onclick="deleteAnswer(${answer.id})">삭제</button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>`;
+    } catch (error) {
+        console.error('답변 로드 실패:', error);
+        showToast('답변을 불러오는데 실패했습니다.', 'error');
+    }
+}
+
+// 필터 설정 함수들
+function setupQuestionsFilters() {
+    document.querySelectorAll('#questions-tab .filter-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            // 모든 필터 버튼에서 active 클래스 제거
+            document.querySelectorAll('#questions-tab .filter-btn').forEach(btn => btn.classList.remove('active'));
+            // 클릭된 버튼에 active 클래스 추가
+            button.classList.add('active');
+            // 해당 상태로 질문 목록 로드
+            const status = button.dataset.status;
+            loadQuestions(status);
+        });
+    });
+}
+
+function setupAnswersFilters() {
+    document.querySelectorAll('#answers-tab .filter-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            // 모든 필터 버튼에서 active 클래스 제거
+            document.querySelectorAll('#answers-tab .filter-btn').forEach(btn => btn.classList.remove('active'));
+            // 클릭된 버튼에 active 클래스 추가
+            button.classList.add('active');
+            // 해당 상태로 답변 목록 로드
+            const status = button.dataset.status;
+            loadAnswers(status);
+        });
+    });
+}
+
+// 질문/답변 상태 변경 함수들
+async function toggleQuestionStatus(questionId, status) {
+    try {
+        const response = await fetch(`/api/admin/questions/${questionId}/status`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status })
+        });
+        
+        if (response.ok) {
+            showToast(`질문이 ${status === 'hidden' ? '숨겨졌습니다' : '복원되었습니다'}.`, 'success');
+            // 현재 필터 상태로 다시 로드
+            const activeFilter = document.querySelector('#questions-tab .filter-btn.active');
+            const currentStatus = activeFilter ? activeFilter.dataset.status : 'all';
+            loadQuestions(currentStatus);
+        } else {
+            showToast('질문 상태 변경에 실패했습니다.', 'error');
+        }
+    } catch (error) {
+        console.error('질문 상태 변경 오류:', error);
+        showToast('질문 상태 변경 중 오류가 발생했습니다.', 'error');
+    }
+}
+
+async function toggleAnswerStatus(answerId, status) {
+    try {
+        const response = await fetch(`/api/admin/answers/${answerId}/status`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status })
+        });
+        
+        if (response.ok) {
+            showToast(`답변이 ${status === 'hidden' ? '숨겨졌습니다' : '복원되었습니다'}.`, 'success');
+            // 현재 필터 상태로 다시 로드
+            const activeFilter = document.querySelector('#answers-tab .filter-btn.active');
+            const currentStatus = activeFilter ? activeFilter.dataset.status : 'all';
+            loadAnswers(currentStatus);
+        } else {
+            showToast('답변 상태 변경에 실패했습니다.', 'error');
+        }
+    } catch (error) {
+        console.error('답변 상태 변경 오류:', error);
+        showToast('답변 상태 변경 중 오류가 발생했습니다.', 'error');
+    }
+}
+
+async function deleteQuestion(questionId) {
+    if (!confirm('정말로 이 질문을 삭제하시겠습니까?')) return;
+    
+    try {
+        const response = await fetch(`/api/questions/${questionId}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            showToast('질문이 삭제되었습니다.', 'success');
+            // 현재 필터 상태로 다시 로드
+            const activeFilter = document.querySelector('#questions-tab .filter-btn.active');
+            const currentStatus = activeFilter ? activeFilter.dataset.status : 'all';
+            loadQuestions(currentStatus);
+        } else {
+            showToast('질문 삭제에 실패했습니다.', 'error');
+        }
+    } catch (error) {
+        console.error('질문 삭제 오류:', error);
+        showToast('질문 삭제 중 오류가 발생했습니다.', 'error');
+    }
+}
+
+async function deleteAnswer(answerId) {
+    if (!confirm('정말로 이 답변을 삭제하시겠습니까?')) return;
+    
+    try {
+        const response = await fetch(`/api/answers/${answerId}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            showToast('답변이 삭제되었습니다.', 'success');
+            // 현재 필터 상태로 다시 로드
+            const activeFilter = document.querySelector('#answers-tab .filter-btn.active');
+            const currentStatus = activeFilter ? activeFilter.dataset.status : 'all';
+            loadAnswers(currentStatus);
+        } else {
+            showToast('답변 삭제에 실패했습니다.', 'error');
+        }
+    } catch (error) {
+        console.error('답변 삭제 오류:', error);
+        showToast('답변 삭제 중 오류가 발생했습니다.', 'error');
+    }
 }
 
 // 유틸리티 함수들
