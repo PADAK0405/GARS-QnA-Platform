@@ -339,7 +339,12 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
  */
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, 'public/uploads/');
+        const uploadDir = 'public/uploads/';
+        // 업로드 디렉토리가 존재하지 않으면 생성
+        if (!require('fs').existsSync(uploadDir)) {
+            require('fs').mkdirSync(uploadDir, { recursive: true });
+        }
+        cb(null, uploadDir);
     },
     filename: (req, file, cb) => {
         // 타임스탬프와 랜덤 숫자를 조합하여 고유한 파일명 생성

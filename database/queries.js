@@ -623,15 +623,17 @@ class Database {
         
         if (status === 'suspended' || status === 'banned') {
             // 정지 상태로 변경 시 suspended_at 설정
+            // JavaScript Date 객체를 MySQL DATETIME 형식으로 변환
+            const suspendedUntilFormatted = suspendedUntil ? suspendedUntil.toISOString().slice(0, 19).replace('T', ' ') : null;
             await pool.execute(
                 'UPDATE users SET status = ?, suspension_reason = ?, suspended_until = ?, suspended_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-                [status, reason, suspendedUntil, userId]
+                [status, reason, suspendedUntilFormatted, userId]
             );
         } else {
             // 정상 상태로 복원 시 suspended_at 초기화
             await pool.execute(
                 'UPDATE users SET status = ?, suspension_reason = ?, suspended_until = ?, suspended_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-                [status, reason, suspendedUntil, userId]
+                [status, reason, null, userId]
             );
         }
     }
