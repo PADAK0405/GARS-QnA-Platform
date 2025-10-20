@@ -270,55 +270,62 @@ async function loadQuestions() {
         return;
     }
     
-    questionsContainer.innerHTML = questions.map(q => `
-        <div class="card question" data-question-id="${q.id}">
-            <div class="question-header">
-                <h3>${escapeHtml(q.title)}</h3>
-                <button class="report-btn" data-target-type="question" data-target-id="${q.id}" data-target-title="${escapeHtml(q.title)}" title="신고하기">
-                    신고
-                </button>
+    // 리스트 형태로 질문 표시
+    questionsContainer.innerHTML = `
+        <div class="questions-list">
+            <div class="list-header">
+                <div class="list-header-item">제목</div>
+                <div class="list-header-item">작성자</div>
+                <div class="list-header-item">통계</div>
+                <div class="list-header-item">작성일</div>
+                <div class="list-header-item">작업</div>
             </div>
-            <div class="question-meta">
-                <span>${escapeHtml(q.author.name)} (Lv.${q.author.level || 1})</span>
-                <span>•</span>
-                <span>${formatDate(q.created_at)}</span>
-            </div>
-            <div class="question-content">${escapeHtml(q.content).replace(/\n/g, '<br>')}</div>
-            ${q.images && q.images.length > 0 ? `
-                <div class="image-gallery">
-                    ${q.images.slice(0, 2).map(img => `<img src="${img}" alt="첨부 이미지" data-image-src="${img}">`).join('')}
-                    ${q.images.length > 2 ? `<span class="more-images">+${q.images.length - 2}개 더</span>` : ''}
-                </div>
-            ` : ''}
-            <div class="question-stats">
-                <span>💬 답변 ${q.answers.length}개</span>
-                ${q.images && q.images.length > 0 ? `<span>📷 이미지 ${q.images.length}개</span>` : ''}
-                            </div>
-            <div class="question-actions">
-                <button class="action-btn" data-action="detail" data-question-id="${q.id}">상세보기</button>
-                ${isMyQuestion(q) ? `
-                    <button class="action-btn" data-action="edit" data-question-id="${q.id}">수정</button>
-                    <button class="action-btn danger" data-action="delete" data-question-id="${q.id}">삭제</button>
-                ` : ''}
-                ${currentUser && ['moderator', 'admin', 'super_admin'].includes(currentUser.role) ? `
-                    <button class="action-btn danger" data-action="hide" data-question-id="${q.id}">숨기기</button>
+            ${questions.map(q => `
+                <div class="question-list-item" data-question-id="${q.id}">
+                    <div class="question-title">
+                        <h4>${escapeHtml(q.title)}</h4>
+                        <div class="question-preview">${escapeHtml(q.content.substring(0, 80))}${q.content.length > 80 ? '...' : ''}</div>
+                        ${q.images && q.images.length > 0 ? `<div class="image-indicator">📷 ${q.images.length}개 이미지</div>` : ''}
+                    </div>
+                    <div class="question-meta">
+                        <div class="question-author">
+                            ${escapeHtml(q.author.name)}
+                            <span class="user-level">Lv.${q.author.level || 1}</span>
+                        </div>
+                    </div>
+                    <div class="question-stats">
+                        <span>💬 답변 ${q.answers.length}개</span>
+                        ${q.images && q.images.length > 0 ? `<span>📷 이미지 ${q.images.length}개</span>` : ''}
+                    </div>
+                    <div class="question-date">
+                        ${formatDate(q.created_at)}
+                    </div>
+                    <div class="question-actions">
+                        <button class="action-btn" data-action="detail" data-question-id="${q.id}">상세보기</button>
+                        <button class="report-btn" data-target-type="question" data-target-id="${q.id}" data-target-title="${escapeHtml(q.title)}" title="신고하기">신고</button>
+                        ${isMyQuestion(q) ? `
+                            <button class="action-btn" data-action="edit" data-question-id="${q.id}">수정</button>
+                            <button class="action-btn danger" data-action="delete" data-question-id="${q.id}">삭제</button>
                         ` : ''}
-            </div>
-        </div>`).join('');
+                        ${currentUser && ['moderator', 'admin', 'super_admin'].includes(currentUser.role) ? `
+                            <button class="action-btn danger" data-action="hide" data-question-id="${q.id}">숨기기</button>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('')}
+        </div>`;
         
         console.log('질문 목록 렌더링 완료');
         
-        // 질문 카드 클릭 이벤트 추가
-        const questionCards = questionsContainer.querySelectorAll('.question');
-        questionCards.forEach(card => {
-            card.addEventListener('click', (e) => {
-                // 버튼, 이미지, 액션 영역 클릭이 아닌 경우에만 상세보기로 이동
+        // 질문 리스트 아이템 클릭 이벤트 추가
+        const questionItems = questionsContainer.querySelectorAll('.question-list-item');
+        questionItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                // 버튼 클릭이 아닌 경우에만 상세보기로 이동
                 if (e.target.tagName !== 'BUTTON' && 
-                    !e.target.closest('.image-gallery') && 
-                    !e.target.closest('.question-actions') &&
-                    !e.target.closest('.report-btn')) {
-                    const questionId = card.dataset.questionId;
-                    console.log('질문 카드 클릭됨:', questionId);
+                    !e.target.closest('.question-actions')) {
+                    const questionId = item.dataset.questionId;
+                    console.log('질문 아이템 클릭됨:', questionId);
                     openQuestionDetail(questionId);
                 }
             });
