@@ -8,150 +8,67 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
     <meta name="description" content="질문하고 답변하며 함께 성장하는 Gaon QandA 커뮤니티">
     <style>
-        /* 질문 리스트 형태 스타일 */
-        .questions-list {
+        /* 네이버 카페 스타일 */
+        .cafe-style-list {
             background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            overflow: hidden;
+            border: 1px solid #e1e5e9;
+            border-radius: 4px;
         }
         
-        .list-header {
-            display: grid;
-            grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
-            background: #f8f9fa;
-            padding: 15px 20px;
-            font-weight: 600;
-            color: #495057;
-            border-bottom: 2px solid #e9ecef;
-        }
-        
-        .list-header-item {
-            padding: 0 10px;
-        }
-        
-        .question-list-item {
-            display: grid;
-            grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
-            padding: 20px;
-            border-bottom: 1px solid #e9ecef;
-            align-items: center;
-            transition: background-color 0.2s;
+        .cafe-post {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f0f0f0;
             cursor: pointer;
+            transition: background-color 0.1s;
         }
         
-        .question-list-item:hover {
+        .cafe-post:hover {
             background-color: #f8f9fa;
         }
         
-        .question-list-item:last-child {
+        .cafe-post:last-child {
             border-bottom: none;
         }
         
-        .question-title {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
+        .post-title {
+            margin-bottom: 6px;
         }
         
-        .question-title h4 {
-            color: #212529;
-            font-size: 16px;
-            line-height: 1.4;
-            margin: 0;
-        }
-        
-        .question-preview {
-            color: #6c757d;
+        .title-link {
+            color: #333;
+            text-decoration: none;
             font-size: 14px;
+            line-height: 1.4;
+            font-weight: normal;
+        }
+        
+        .title-link:hover {
+            color: #0066cc;
+            text-decoration: underline;
+        }
+        
+        .image-icon {
+            margin-left: 5px;
+            color: #666;
+        }
+        
+        .post-info {
+            font-size: 12px;
+            color: #999;
             line-height: 1.3;
         }
         
-        .image-indicator {
-            color: #28a745;
-            font-size: 12px;
-            margin-top: 3px;
+        .post-info .separator {
+            margin: 0 5px;
         }
         
-        .question-meta {
-            display: flex;
-            flex-direction: column;
-            gap: 3px;
-            font-size: 14px;
+        .author {
+            color: #666;
+            font-weight: normal;
         }
         
-        .question-author {
-            font-weight: 500;
-            color: #495057;
-        }
-        
-        .user-level {
-            background: #007bff;
-            color: white;
-            padding: 2px 6px;
-            border-radius: 10px;
-            font-size: 11px;
-            font-weight: 500;
-            display: inline-block;
-            width: fit-content;
-        }
-        
-        .question-stats {
-            display: flex;
-            flex-direction: column;
-            gap: 3px;
-            font-size: 14px;
-            color: #6c757d;
-        }
-        
-        .question-date {
-            font-size: 14px;
-            color: #6c757d;
-        }
-        
-        .question-actions {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-        
-        .action-btn {
-            padding: 6px 12px;
-            border: none;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            background: #007bff;
-            color: white;
-        }
-        
-        .action-btn:hover {
-            background: #0056b3;
-        }
-        
-        .action-btn.danger {
-            background: #dc3545;
-        }
-        
-        .action-btn.danger:hover {
-            background: #c82333;
-        }
-        
-        .report-btn {
-            background: #6c757d;
-            color: white;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 11px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        
-        .report-btn:hover {
-            background: #545b62;
+        .date, .views, .replies {
+            color: #999;
         }
         
         .empty-state {
@@ -165,42 +82,9 @@
             color: #495057;
         }
         
-        /* 강제로 리스트 형태 표시 */
-        .questions-list {
-            display: block !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-        }
-        
-        .question-list-item {
-            display: grid !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-        }
-        
-        /* 반응형 디자인 */
-        @media (max-width: 1200px) {
-            .list-header, .question-list-item {
-                grid-template-columns: 1fr;
-                gap: 10px;
-            }
-            
-            .list-header-item {
-                display: none;
-            }
-            
-            .question-list-item > div {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                padding: 5px 0;
-            }
-            
-            .question-title, .question-meta {
-                flex-direction: row;
-                justify-content: space-between;
-                align-items: flex-start;
-            }
+        /* 기존 복잡한 스타일 숨기기 */
+        .questions-grid .card {
+            display: none !important;
         }
     </style>
 </head>

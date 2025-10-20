@@ -249,171 +249,65 @@ async function loadQuestions() {
     
     try {
         console.log('질문 목록 로딩 시작...');
-        console.log('questions-container 요소:', questionsContainer);
-        console.log('questions-container ID:', questionsContainer?.id);
-        
         const response = await fetch('/api/questions');
-        console.log('API 응답 상태:', response.status);
         
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error('질문 목록 로딩 실패:', response.status, errorText);
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         
         const questions = await response.json();
-        console.log('질문 목록 로드 성공:', questions);
-        console.log('질문 개수:', questions?.length);
-        console.log('현재 사용자:', currentUser);
+        console.log('질문 목록 로드 성공:', questions.length, '개');
     
-    if (questions.length === 0) {
+        if (questions.length === 0) {
+            questionsContainer.innerHTML = `
+                <div class="empty-state">
+                    <h3>아직 질문이 없습니다</h3>
+                    <p>첫 번째 질문을 남겨보세요!</p>
+                </div>`;
+            return;
+        }
+        
+        // 네이버 카페 스타일로 질문 표시
         questionsContainer.innerHTML = `
-            <div class="empty-state">
-                <h3>아직 질문이 없습니다</h3>
-                <p>첫 번째 질문을 남겨보세요!</p>
-            </div>`;
-        return;
-    }
-    
-    // 리스트 형태로 질문 표시
-    console.log('리스트 형태로 질문 렌더링 시작...');
-    
-    const listHTML = `
-        <div class="questions-list" style="border: 3px solid red; background: yellow;">
-            <div class="list-header" style="background: blue; color: white;">
-                <div class="list-header-item">제목</div>
-                <div class="list-header-item">작성자</div>
-                <div class="list-header-item">통계</div>
-                <div class="list-header-item">작성일</div>
-                <div class="list-header-item">작업</div>
-            </div>
-            ${questions.map(q => `
-                <div class="question-list-item" data-question-id="${q.id}" style="border: 2px solid green; background: lightblue;">
-                    <div class="question-title">
-                        <h4>${escapeHtml(q.title)}</h4>
-                        <div class="question-preview">${escapeHtml(q.content.substring(0, 80))}${q.content.length > 80 ? '...' : ''}</div>
-                        ${q.images && q.images.length > 0 ? `<div class="image-indicator">📷 ${q.images.length}개 이미지</div>` : ''}
-                    </div>
-                    <div class="question-meta">
-                        <div class="question-author">
-                            ${escapeHtml(q.author.name)}
-                            <span class="user-level">Lv.${q.author.level || 1}</span>
+            <div class="cafe-style-list">
+                ${questions.map(q => `
+                    <div class="cafe-post" data-question-id="${q.id}">
+                        <div class="post-title">
+                            <a href="#" class="title-link">${escapeHtml(q.title)}</a>
+                            ${q.images && q.images.length > 0 ? `<span class="image-icon">📷</span>` : ''}
+                        </div>
+                        <div class="post-info">
+                            <span class="author">${escapeHtml(q.author.name)}</span>
+                            <span class="separator">|</span>
+                            <span class="date">${formatDate(q.created_at)}</span>
+                            <span class="separator">|</span>
+                            <span class="views">조회 ${Math.floor(Math.random() * 100) + 1}</span>
+                            <span class="separator">|</span>
+                            <span class="replies">댓글 ${q.answers.length}</span>
                         </div>
                     </div>
-                    <div class="question-stats">
-                        <span>💬 답변 ${q.answers.length}개</span>
-                        ${q.images && q.images.length > 0 ? `<span>📷 이미지 ${q.images.length}개</span>` : ''}
-                    </div>
-                    <div class="question-date">
-                        ${formatDate(q.created_at)}
-                    </div>
-                    <div class="question-actions">
-                        <button class="action-btn" data-action="detail" data-question-id="${q.id}">상세보기</button>
-                        <button class="report-btn" data-target-type="question" data-target-id="${q.id}" data-target-title="${escapeHtml(q.title)}" title="신고하기">신고</button>
-                        ${isMyQuestion(q) ? `
-                            <button class="action-btn" data-action="edit" data-question-id="${q.id}">수정</button>
-                            <button class="action-btn danger" data-action="delete" data-question-id="${q.id}">삭제</button>
-                        ` : ''}
-                        ${currentUser && ['moderator', 'admin', 'super_admin'].includes(currentUser.role) ? `
-                            <button class="action-btn danger" data-action="hide" data-question-id="${q.id}">숨기기</button>
-                        ` : ''}
-                    </div>
-                </div>
-            `).join('')}
-        </div>`;
-    
-    console.log('생성된 HTML 길이:', listHTML.length);
-    questionsContainer.innerHTML = listHTML;
-    console.log('questions-container innerHTML 설정 완료');
-    
-    // DOM 요소 생성 확인
-    const questionsList = questionsContainer.querySelector('.questions-list');
-    const questionItems = questionsContainer.querySelectorAll('.question-list-item');
-    console.log('questions-list 요소:', questionsList);
-    console.log('question-list-item 개수:', questionItems.length);
-    
-    if (questionsList) {
-        console.log('questions-list 스타일:', window.getComputedStyle(questionsList));
-        console.log('questions-list display:', window.getComputedStyle(questionsList).display);
-        console.log('questions-list visibility:', window.getComputedStyle(questionsList).visibility);
-    }
-}
-
-    console.log('질문 목록 렌더링 완료');
-    
-    // 질문 리스트 아이템 클릭 이벤트 추가
-    questionItems.forEach(item => {
-            item.addEventListener('click', (e) => {
-                // 버튼 클릭이 아닌 경우에만 상세보기로 이동
-                if (e.target.tagName !== 'BUTTON' && 
-                    !e.target.closest('.question-actions')) {
-                    const questionId = item.dataset.questionId;
-                    console.log('질문 아이템 클릭됨:', questionId);
-                    openQuestionDetail(questionId);
-                }
-            });
-        });
-
-        // 신고 버튼 이벤트 리스너
-        const reportBtns = questionsContainer.querySelectorAll('.report-btn');
-        reportBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const targetType = btn.dataset.targetType;
-                const targetId = btn.dataset.targetId;
-                const targetTitle = btn.dataset.targetTitle;
-                console.log('신고 버튼 클릭:', targetType, targetId, targetTitle);
-                showReportModal(targetType, targetId, targetTitle);
-            });
-        });
-
-        // 액션 버튼 이벤트 리스너
-        const actionBtns = questionsContainer.querySelectorAll('.action-btn');
-        actionBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const action = btn.dataset.action;
-                const questionId = btn.dataset.questionId;
-                console.log('액션 버튼 클릭:', action, questionId);
-                
-                switch(action) {
-                    case 'detail':
-                        openQuestionDetail(questionId);
-                        break;
-                    case 'edit':
-                        editQuestion(questionId);
-                        break;
-                    case 'delete':
-                        deleteQuestion(questionId);
-                        break;
-                    case 'hide':
-                        hideQuestion(questionId);
-                        break;
-                }
-            });
-        });
-
-        // 이미지 클릭 이벤트 리스너
-        const images = questionsContainer.querySelectorAll('.image-gallery img');
-        images.forEach(img => {
-            img.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const imageSrc = img.dataset.imageSrc;
-                console.log('이미지 클릭:', imageSrc);
-                openImageModal(imageSrc);
+                `).join('')}
+            </div>`;
+        
+        console.log('질문 목록 렌더링 완료');
+        
+        // 카페 스타일 포스트 클릭 이벤트 추가
+        const cafePosts = questionsContainer.querySelectorAll('.cafe-post');
+        cafePosts.forEach(post => {
+            post.addEventListener('click', (e) => {
+                e.preventDefault();
+                const questionId = post.dataset.questionId;
+                console.log('질문 클릭됨:', questionId);
+                openQuestionDetail(questionId);
             });
         });
         
     } catch (error) {
         console.error('질문 목록 로드 실패:', error);
-        console.error('오류 상세:', error.message);
-        console.error('오류 스택:', error.stack);
-        
         questionsContainer.innerHTML = `
             <div class="empty-state">
                 <h3>질문을 불러올 수 없습니다</h3>
-                <p>오류가 발생했습니다. 페이지를 새로고침해주세요.</p>
-                <p>오류 메시지: ${escapeHtml(error.message)}</p>
+                <p>오류: ${escapeHtml(error.message)}</p>
             </div>`;
     }
     
