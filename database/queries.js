@@ -388,10 +388,9 @@ class Database {
                 params.push(status);
             }
             
-            query += ' ORDER BY r.created_at DESC LIMIT ? OFFSET ?';
-            params.push(limit, offset);
+            query += ` ORDER BY r.created_at DESC LIMIT ${limit} OFFSET ${offset}`;
             
-            const [reports] = await pool.execute(query, params);
+            const [reports] = await pool.query(query, params);
             return reports;
         } catch (error) {
             console.error('신고 목록 조회 실패:', error);
@@ -597,7 +596,7 @@ class Database {
      * 사용자 목록 조회 (관리자용)
      */
     static async getAllUsers(limit = 50, offset = 0) {
-        const [users] = await pool.execute(`
+        const [users] = await pool.query(`
             SELECT 
                 id,
                 display_name,
@@ -610,8 +609,8 @@ class Database {
                 created_at
             FROM users 
             ORDER BY created_at DESC 
-            LIMIT ? OFFSET ?
-        `, [limit, offset]);
+            LIMIT ${limit} OFFSET ${offset}
+        `);
         
         return users;
     }
@@ -719,15 +718,15 @@ class Database {
      * 관리자 로그 조회
      */
     static async getAdminLogs(limit = 100, offset = 0) {
-        const [logs] = await pool.execute(`
+        const [logs] = await pool.query(`
             SELECT 
                 al.*,
                 u.display_name as admin_name
             FROM admin_logs al
             JOIN users u ON al.admin_id = u.id
             ORDER BY al.created_at DESC
-            LIMIT ? OFFSET ?
-        `, [limit, offset]);
+            LIMIT ${limit} OFFSET ${offset}
+        `);
         
         return logs.map(log => ({
             ...log,
