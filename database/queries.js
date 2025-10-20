@@ -143,14 +143,33 @@ class Database {
     }
 
     /**
-     * 질문 ID로 조회
+     * 질문 ID로 조회 (작성자 정보 포함)
      */
     static async getQuestionById(questionId) {
-        const [questions] = await pool.execute(
-            'SELECT * FROM questions WHERE id = ?',
-            [questionId]
-        );
-        return questions[0] || null;
+        const [questions] = await pool.execute(`
+            SELECT 
+                q.*,
+                u.display_name as author_name,
+                u.id as author_id,
+                u.email as author_email
+            FROM questions q
+            LEFT JOIN users u ON q.user_id = u.id
+            WHERE q.id = ?
+        `, [questionId]);
+        
+        if (questions[0]) {
+            const question = questions[0];
+            return {
+                ...question,
+                author: {
+                    id: question.author_id,
+                    name: question.author_name,
+                    email: question.author_email
+                }
+            };
+        }
+        
+        return null;
     }
 
     // ========== 답변 관련 쿼리 ==========
@@ -516,14 +535,33 @@ class Database {
     }
 
     /**
-     * 답변 ID로 조회
+     * 답변 ID로 조회 (작성자 정보 포함)
      */
     static async getAnswerById(answerId) {
-        const [answers] = await pool.execute(
-            'SELECT * FROM answers WHERE id = ?',
-            [answerId]
-        );
-        return answers[0] || null;
+        const [answers] = await pool.execute(`
+            SELECT 
+                a.*,
+                u.display_name as author_name,
+                u.id as author_id,
+                u.email as author_email
+            FROM answers a
+            LEFT JOIN users u ON a.user_id = u.id
+            WHERE a.id = ?
+        `, [answerId]);
+        
+        if (answers[0]) {
+            const answer = answers[0];
+            return {
+                ...answer,
+                author: {
+                    id: answer.author_id,
+                    name: answer.author_name,
+                    email: answer.author_email
+                }
+            };
+        }
+        
+        return null;
     }
 
     /**

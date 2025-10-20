@@ -705,14 +705,23 @@ async function punishUser(reportId, targetId, targetType) {
             const response = await fetch(`/api/questions/${targetId}`);
             if (response.ok) {
                 const question = await response.json();
-                userId = question.author.id;
+                console.log('질문 데이터:', question);
+                // author 객체가 있는지 확인하고 안전하게 접근
+                userId = question.author?.id || question.user_id;
             }
         } else if (targetType === 'answer') {
             const response = await fetch(`/api/answers/${targetId}`);
             if (response.ok) {
                 const answer = await response.json();
-                userId = answer.author.id;
+                console.log('답변 데이터:', answer);
+                // author 객체가 있는지 확인하고 안전하게 접근
+                userId = answer.author?.id || answer.user_id;
             }
+        }
+        
+        if (!userId) {
+            alert('사용자 ID를 찾을 수 없습니다.');
+            return;
         }
 
         if (userId) {
