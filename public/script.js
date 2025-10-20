@@ -249,7 +249,11 @@ async function loadQuestions() {
     
     try {
         console.log('질문 목록 로딩 시작...');
+        console.log('questions-container 요소:', questionsContainer);
+        console.log('questions-container ID:', questionsContainer?.id);
+        
         const response = await fetch('/api/questions');
+        console.log('API 응답 상태:', response.status);
         
         if (!response.ok) {
             const errorText = await response.text();
@@ -259,6 +263,7 @@ async function loadQuestions() {
         
         const questions = await response.json();
         console.log('질문 목록 로드 성공:', questions);
+        console.log('질문 개수:', questions?.length);
         console.log('현재 사용자:', currentUser);
     
     if (questions.length === 0) {
@@ -271,7 +276,9 @@ async function loadQuestions() {
     }
     
     // 리스트 형태로 질문 표시
-    questionsContainer.innerHTML = `
+    console.log('리스트 형태로 질문 렌더링 시작...');
+    
+    const listHTML = `
         <div class="questions-list">
             <div class="list-header">
                 <div class="list-header-item">제목</div>
@@ -314,6 +321,10 @@ async function loadQuestions() {
                 </div>
             `).join('')}
         </div>`;
+    
+    console.log('생성된 HTML 길이:', listHTML.length);
+    questionsContainer.innerHTML = listHTML;
+    console.log('questions-container innerHTML 설정 완료');
         
         console.log('질문 목록 렌더링 완료');
         
@@ -383,10 +394,14 @@ async function loadQuestions() {
         
     } catch (error) {
         console.error('질문 목록 로드 실패:', error);
+        console.error('오류 상세:', error.message);
+        console.error('오류 스택:', error.stack);
+        
         questionsContainer.innerHTML = `
             <div class="empty-state">
                 <h3>질문을 불러올 수 없습니다</h3>
-                <p>잠시 후 다시 시도해주세요.</p>
+                <p>오류가 발생했습니다. 페이지를 새로고침해주세요.</p>
+                <p>오류 메시지: ${escapeHtml(error.message)}</p>
             </div>`;
     }
     
