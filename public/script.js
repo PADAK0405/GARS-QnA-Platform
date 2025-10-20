@@ -20,13 +20,32 @@ async function fetchCSRFToken() {
                 metaTag.setAttribute('content', data.csrfToken);
             }
             
-            console.log('CSRF 토큰 로드 완료');
+            console.log('CSRF 토큰 로드 완료:', data.csrfToken);
+            return data.csrfToken;
         } else {
             console.error('CSRF 토큰 가져오기 실패:', response.status);
+            return null;
         }
     } catch (error) {
         console.error('CSRF 토큰 가져오기 오류:', error);
+        return null;
     }
+}
+
+/**
+ * CSRF 토큰 새로고침 함수
+ * 토큰이 없거나 만료된 경우 새로 가져오기
+ * @async
+ */
+async function refreshCSRFToken() {
+    const currentToken = window.csrfToken || document.querySelector('meta[name="csrf-token"]')?.content;
+    
+    if (!currentToken) {
+        console.log('CSRF 토큰이 없어서 새로 가져옵니다...');
+        return await fetchCSRFToken();
+    }
+    
+    return currentToken;
 }
 
 /**
@@ -711,13 +730,22 @@ async function submitAnswer(event) {
     
     const images = answerImageArrays[questionId] || [];
     
+    // CSRF 토큰 새로고침
+    const csrfToken = await refreshCSRFToken();
+    if (!csrfToken) {
+        showToast('CSRF 토큰을 가져올 수 없습니다. 페이지를 새로고침해주세요.', 'error');
+        button.classList.remove('loading');
+        button.disabled = false;
+        return;
+    }
+    
     const response = await fetch(`/api/questions/${questionId}/answers`, {
         method: 'POST',
         headers: { 
             'Content-Type': 'application/json',
-            'X-CSRF-Token': window.csrfToken
+            'X-CSRF-Token': csrfToken
         },
-        body: JSON.stringify({ content, images, _csrf: window.csrfToken }),
+        body: JSON.stringify({ content, images, _csrf: csrfToken }),
         credentials: 'include'
     });
     
@@ -971,13 +999,22 @@ function setupAskPage() {
         button.classList.add('loading');
         button.disabled = true;
         
+        // CSRF 토큰 새로고침
+        const csrfToken = await refreshCSRFToken();
+        if (!csrfToken) {
+            showToast('CSRF 토큰을 가져올 수 없습니다. 페이지를 새로고침해주세요.', 'error');
+            button.classList.remove('loading');
+            button.disabled = false;
+            return;
+        }
+        
         const response = await fetch('/api/questions', {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
-                'X-CSRF-Token': window.csrfToken
+                'X-CSRF-Token': csrfToken
             },
-            body: JSON.stringify({ title, content, images: uploadedImages, _csrf: window.csrfToken }),
+            body: JSON.stringify({ title, content, images: uploadedImages, _csrf: csrfToken }),
             credentials: 'include'
         });
         
