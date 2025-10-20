@@ -32,70 +32,29 @@ class Calendar {
      * 인증 확인, 캘린더 렌더링, 이벤트 로드, 폼 설정을 순차적으로 실행합니다.
      */
     init() {
-        this.checkAuth();
+        this.checkAdminStatus();
         this.renderCalendar();
         this.loadEvents();
         this.setupEventForm();
     }
 
     /**
-     * 사용자 인증 상태 확인
-     * 홈페이지의 인증 시스템과 연동하여 사용자 정보를 확인합니다.
-     * @async
+     * 관리자 권한 확인
+     * 전역 currentUser 변수에서 관리자 권한을 확인합니다.
      */
-    async checkAuth() {
+    checkAdminStatus() {
         try {
             // 홈페이지의 전역 currentUser 변수 확인
             if (typeof currentUser !== 'undefined' && currentUser) {
                 // 관리자 권한 확인 (1이면 관리자)
                 this.isAdmin = currentUser.is_admin === 1;
-                this.renderAuthButtons(currentUser);
             } else {
-                // 로그인되지 않은 경우 로그인 버튼 표시
-                this.renderLoginButton();
+                this.isAdmin = false;
             }
         } catch (error) {
-            console.error('인증 확인 오류:', error);
-            // 오류 발생 시 로그인 버튼 표시
-            this.renderLoginButton();
+            console.error('관리자 권한 확인 오류:', error);
+            this.isAdmin = false;
         }
-    }
-
-    /**
-     * 인증된 사용자용 버튼 렌더링
-     * 사용자 이름, 마이페이지 링크, 로그아웃 버튼을 표시합니다.
-     * @param {Object} user - 사용자 정보 객체
-     */
-    renderAuthButtons(user) {
-        const authContainer = document.getElementById('auth-container');
-        if (!authContainer) {
-            console.error('auth-container 요소를 찾을 수 없습니다.');
-            return;
-        }
-        
-        authContainer.innerHTML = `
-            <div class="user-info">
-                <span class="user-name">${user.display_name || user.name}</span>
-                <a href="/mypage.html" class="auth-btn">마이페이지</a>
-                <button onclick="logout()" class="auth-btn logout">로그아웃</button>
-            </div>
-        `;
-    }
-
-    /**
-     * 로그인 버튼 렌더링
-     * Google OAuth 로그인 링크를 표시합니다.
-     */
-    renderLoginButton() {
-        const authContainer = document.getElementById('auth-container');
-        if (!authContainer) {
-            console.error('auth-container 요소를 찾을 수 없습니다.');
-            return;
-        }
-        
-        authContainer.innerHTML = `
-            <a href="/auth/google" class="login-btn">Google로 로그인</a>
-        `;
     }
 
     /**
@@ -616,36 +575,5 @@ function closeEventModal() {
     const modal = document.getElementById('event-modal');
     if (modal) {
         modal.style.display = 'none';
-    }
-}
-
-/**
- * 로그인 함수
- * Google OAuth 로그인 페이지로 이동합니다.
- */
-function login() {
-    window.location.href = '/auth/google';
-}
-
-/**
- * 로그아웃 함수
- * 서버에 로그아웃 요청을 보내고 홈페이지로 이동합니다.
- * @async
- */
-async function logout() {
-    try {
-        const response = await fetch('/api/auth/logout', {
-            method: 'POST'
-        });
-        
-        if (response.ok) {
-            window.location.href = '/';
-        } else {
-            console.error('로그아웃 실패:', response.status);
-            alert('로그아웃에 실패했습니다.');
-        }
-    } catch (error) {
-        console.error('로그아웃 오류:', error);
-        alert('로그아웃 중 오류가 발생했습니다.');
     }
 }
