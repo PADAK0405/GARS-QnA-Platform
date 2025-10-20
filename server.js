@@ -128,15 +128,15 @@ async function migrateUserLevels() {
     
     try {
         // 레벨과 경험치가 null인 사용자들을 기본값으로 설정
-        const [result] = await pool.execute(`
-            UPDATE users 
-            SET level = 1, experience = 0 
-            WHERE level IS NULL OR experience IS NULL
-        `);
-        
-        if (result.affectedRows > 0) {
+    const [result] = await pool.execute(`
+        UPDATE users 
+        SET level = 1, experience = 0 
+        WHERE level IS NULL OR experience IS NULL
+    `);
+    
+    if (result.affectedRows > 0) {
             console.log(`  ✅ ${result.affectedRows}명의 사용자 레벨 정보 업데이트`);
-        } else {
+    } else {
             console.log('  ℹ️  업데이트할 사용자 없음');
         }
     } catch (error) {
@@ -255,7 +255,7 @@ app.use(helmet({
             defaultSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
             scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-hashes'", "https://accounts.google.com"],
-            scriptSrcAttr: ["'unsafe-hashes'"],
+            scriptSrcAttr: ["'unsafe-hashes'", "'unsafe-inline'"],
             imgSrc: ["'self'", "data:", "https:", "blob:"],
             connectSrc: ["'self'", "https://accounts.google.com", "https://generativelanguage.googleapis.com"],
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
