@@ -1,4 +1,35 @@
 /**
+ * CSRF 토큰 가져오기 함수
+ * 서버에서 CSRF 토큰을 가져와서 메타 태그와 전역 변수에 설정
+ * @async
+ */
+async function fetchCSRFToken() {
+    try {
+        const response = await fetch('/api/csrf-token', {
+            method: 'GET',
+            credentials: 'include'
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            window.csrfToken = data.csrfToken;
+            
+            // 메타 태그에 CSRF 토큰 설정
+            const metaTag = document.querySelector('meta[name="csrf-token"]');
+            if (metaTag) {
+                metaTag.setAttribute('content', data.csrfToken);
+            }
+            
+            console.log('CSRF 토큰 로드 완료');
+        } else {
+            console.error('CSRF 토큰 가져오기 실패:', response.status);
+        }
+    } catch (error) {
+        console.error('CSRF 토큰 가져오기 오류:', error);
+    }
+}
+
+/**
  * 페이지 초기화 함수
  * DOM 로드 완료 후 사용자 상태 확인 및 페이지별 초기화 실행
  */
@@ -8,9 +39,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         clearSuspensionModalStorage();
         
         // CSRF 토큰 초기화
-        if (typeof fetchCSRFToken === 'function') {
-            await fetchCSRFToken();
-        }
+        await fetchCSRFToken();
         
         // 사용자 상태 업데이트
         await updateUserStatus();
