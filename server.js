@@ -182,6 +182,10 @@ async function createCalendarTable() {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// ========== Express 설정 ==========
+// Nginx 프록시 뒤에서 실행되므로 trust proxy 설정
+app.set('trust proxy', 1);
+
 // ========== 보안 미들웨어 설정 ==========
 
 // 1. Helmet - 보안 헤더 설정 (CSP 문제 해결)
