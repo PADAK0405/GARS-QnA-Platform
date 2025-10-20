@@ -307,6 +307,17 @@ let calendar;
 // 페이지 로드 시 초기화
 document.addEventListener('DOMContentLoaded', () => {
     calendar = new Calendar();
+    
+    // 버튼 이벤트 리스너 추가
+    document.addEventListener('click', (e) => {
+        if (e.target.textContent === '‹') {
+            calendar.previousMonth();
+        } else if (e.target.textContent === '›') {
+            calendar.nextMonth();
+        } else if (e.target.textContent === '오늘') {
+            calendar.goToToday();
+        }
+    });
 });
 
 // 모달 닫기 함수

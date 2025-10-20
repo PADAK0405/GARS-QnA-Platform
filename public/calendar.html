@@ -8,9 +8,19 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         .calendar-container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 20px;
+            display: flex;
+            gap: 30px;
+        }
+        
+        .calendar-main {
+            flex: 4;
+        }
+        
+        .calendar-sidebar {
+            flex: 3;
         }
         
         .calendar-header {
@@ -116,7 +126,17 @@
         }
         
         .calendar-events {
-            margin-top: 20px;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            min-height: 400px;
+        }
+        
+        .calendar-events h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 2px solid #2196f3;
+            padding-bottom: 10px;
         }
         
         .event-item {
@@ -269,23 +289,27 @@
     </nav>
 
     <div class="calendar-container">
-        <div class="calendar-header">
-            <div class="calendar-nav">
-                <button onclick="calendar.previousMonth()">‹</button>
-                <button onclick="calendar.nextMonth()">›</button>
+        <div class="calendar-main">
+            <div class="calendar-header">
+                <div class="calendar-nav">
+                    <button onclick="calendar.previousMonth()">‹</button>
+                    <button onclick="calendar.nextMonth()">›</button>
+                </div>
+                <div class="calendar-month" id="current-month"></div>
+                <div class="calendar-nav">
+                    <button onclick="calendar.goToToday()">오늘</button>
+                </div>
             </div>
-            <div class="calendar-month" id="current-month"></div>
-            <div class="calendar-nav">
-                <button onclick="calendar.goToToday()">오늘</button>
+
+            <div class="calendar-grid" id="calendar-grid">
+                <!-- 캘린더 그리드가 여기에 생성됩니다 -->
             </div>
         </div>
 
-        <div class="calendar-grid" id="calendar-grid">
-            <!-- 캘린더 그리드가 여기에 생성됩니다 -->
-        </div>
-
-        <div class="calendar-events" id="calendar-events">
-            <!-- 선택된 날짜의 이벤트가 여기에 표시됩니다 -->
+        <div class="calendar-sidebar">
+            <div class="calendar-events" id="calendar-events">
+                <!-- 선택된 날짜의 이벤트가 여기에 표시됩니다 -->
+            </div>
         </div>
     </div>
 
