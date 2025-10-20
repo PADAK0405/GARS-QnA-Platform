@@ -1,55 +1,109 @@
+/**
+ * 페이지 초기화 함수
+ * DOM 로드 완료 후 사용자 상태 확인 및 페이지별 초기화 실행
+ */
 document.addEventListener('DOMContentLoaded', async () => {
-    // 기존 모달 관련 localStorage 데이터 정리
-    clearSuspensionModalStorage();
-    
-    // CSRF 토큰 초기화
-    if (typeof fetchCSRFToken === 'function') {
-        await fetchCSRFToken();
-    }
-    
-    await updateUserStatus();
-    const path = window.location.pathname;
-    const page = path.split('/').pop();
-    if (page === '' || page === 'index.html') loadHomePage();
-    else if (page === 'questions.html') {
-        // 사용자 정보가 설정된 후 질문 목록 로드
-        if (currentUser) {
-            loadQuestions();
-        } else {
-            // 사용자 정보 로드 후 질문 목록 로드
-            setTimeout(() => {
-                if (currentUser) {
-                    loadQuestions();
-                } else {
-                    console.error('사용자 정보를 로드할 수 없습니다.');
-                }
-            }, 1000);
+    try {
+        // 기존 모달 관련 localStorage 데이터 정리
+        clearSuspensionModalStorage();
+        
+        // CSRF 토큰 초기화
+        if (typeof fetchCSRFToken === 'function') {
+            await fetchCSRFToken();
         }
-    }
-    else if (page === 'ask.html') setupAskPage();
-    else if (page === 'mypage.html') {
-        // 마이페이지는 mypage.js에서 처리
-        if (typeof loadMyPage === 'undefined') {
-            console.error('마이페이지 스크립트를 찾을 수 없습니다.');
-        }
-    }
-    else if (page === 'admin.html') {
-        // 관리자 페이지는 admin.js에서 처리
-        if (typeof loadAdminDashboard === 'undefined') {
-            console.error('관리자 스크립트를 찾을 수 없습니다.');
-        }
-    }
-    else if (page === 'ranking.html') loadRankings();
-    else if (page === 'score-ranking.html' || page === 'level-ranking.html') {
-        // 랭킹 페이지는 각각의 스크립트에서 처리
-        console.log('랭킹 페이지 로드됨:', page);
+        
+        // 사용자 상태 업데이트
+        await updateUserStatus();
+        
+        // 현재 페이지 식별 및 초기화
+        const path = window.location.pathname;
+        const page = path.split('/').pop();
+        
+        // 페이지별 초기화 실행
+        await initializePage(page);
+        
+    } catch (error) {
+        console.error('페이지 초기화 오류:', error);
     }
 });
 
+/**
+ * 페이지별 초기화 함수
+ * @param {string} page - 현재 페이지 이름
+ */
+async function initializePage(page) {
+    const pageHandlers = {
+        '': loadHomePage,
+        'index.html': loadHomePage,
+        'questions.html': initializeQuestionsPage,
+        'ask.html': setupAskPage,
+        'mypage.html': initializeMyPage,
+        'admin.html': initializeAdminPage,
+        'ranking.html': loadRankings,
+        'score-ranking.html': () => console.log('랭킹 페이지 로드됨:', page),
+        'level-ranking.html': () => console.log('랭킹 페이지 로드됨:', page)
+    };
+    
+    const handler = pageHandlers[page];
+    if (handler) {
+        await handler();
+    } else {
+        console.warn('알 수 없는 페이지:', page);
+    }
+}
+
+/**
+ * 질문 목록 페이지 초기화
+ * 사용자 정보 확인 후 질문 목록 로드
+ */
+async function initializeQuestionsPage() {
+    if (currentUser) {
+        loadQuestions();
+    } else {
+        // 사용자 정보 로드 대기 후 질문 목록 로드
+        setTimeout(() => {
+            if (currentUser) {
+                loadQuestions();
+            } else {
+                console.error('사용자 정보를 로드할 수 없습니다.');
+            }
+        }, 1000);
+    }
+}
+
+/**
+ * 마이페이지 초기화
+ * 마이페이지 스크립트 존재 여부 확인
+ */
+function initializeMyPage() {
+    if (typeof loadMyPage === 'undefined') {
+        console.error('마이페이지 스크립트를 찾을 수 없습니다.');
+    }
+}
+
+/**
+ * 관리자 페이지 초기화
+ * 관리자 스크립트 존재 여부 확인
+ */
+function initializeAdminPage() {
+    if (typeof loadAdminDashboard === 'undefined') {
+        console.error('관리자 스크립트를 찾을 수 없습니다.');
+    }
+}
+
+/**
+ * 사용자 상태 업데이트 함수
+ * 인증 상태를 확인하고 네비게이션 바를 업데이트
+ */
 async function updateUserStatus() {
     const authContainer = document.getElementById('auth-container');
     const path = window.location.pathname.split('/').pop();
     const fab = document.getElementById('ask-fab');
+    
+    if (!authContainer) {
+        console.error('auth-container 요소를 찾을 수 없습니다.');
+        return;
+    }
     
     try {
         const response = await fetch('/api/user');
@@ -58,38 +112,24 @@ async function updateUserStatus() {
         }
         const user = await response.json();
         
-        authContainer.innerHTML = `
-            <div class="nav-menu">
-                <ul class="nav-links">
-                    <li><a href="/" class="nav-link ${path === '' || path === 'index.html' ? 'active' : ''}">홈</a></li>
-                    <li><a href="/questions.html" class="nav-link ${path === 'questions.html' ? 'active' : ''}">질문 목록</a></li>
-                    <li><a href="/ask.html" class="nav-link ${path === 'ask.html' ? 'active' : ''}">질문하기</a></li>
-                    <li><a href="/ai-question.html" class="nav-link ${path === 'ai-question.html' ? 'active' : ''}">AI 질문</a></li>
-                    <li><a href="/score-ranking.html" class="nav-link ${path === 'score-ranking.html' || path === 'level-ranking.html' ? 'active' : ''}">랭킹</a></li>
-                    <li><a href="/mypage.html" class="nav-link ${path === 'mypage.html' ? 'active' : ''}">마이페이지</a></li>
-                </ul>
-                <div class="user-info">
-                    <span>${user.displayName}님 (Lv.${user.level || 1}) 포인트: ${user.levelInfo?.points?.current || 0}</span>
-                    <a href="/auth/logout" class="logout-btn">로그아웃</a>
-                </div>
-            </div>`;
+        // 인증된 사용자용 네비게이션 렌더링
+        renderAuthenticatedNavigation(authContainer, user, path);
         
+        // FAB 표시
         if (fab) {
             fab.style.display = 'flex';
         }
-    } catch (error) {
-        authContainer.innerHTML = `
-            <ul class="nav-links">
-                <li><a href="/" class="nav-link ${path === '' || path === 'index.html' ? 'active' : ''}">홈</a></li>
-                <li><a href="/questions.html" class="nav-link ${path === 'questions.html' ? 'active' : ''}">질문 목록</a></li>
-                <li><a href="/score-ranking.html" class="nav-link ${path === 'score-ranking.html' || path === 'level-ranking.html' ? 'active' : ''}">랭킹</a></li>
-            </ul>
-            <a href="/auth/google" class="login-btn">Google로 로그인</a>`;
         
+    } catch (error) {
+        // 비인증 사용자용 네비게이션 렌더링
+        renderUnauthenticatedNavigation(authContainer, path);
+        
+        // FAB 숨기기
         if (fab) {
             fab.style.display = 'none';
         }
         
+        // 질문 작성 페이지에서 로그인 필요 알림
         if (path === 'ask.html') {
             showToast('질문을 등록하려면 로그인이 필요합니다.', 'error');
             setTimeout(() => {
@@ -97,6 +137,58 @@ async function updateUserStatus() {
             }, 1500);
         }
     }
+}
+
+/**
+ * 인증된 사용자용 네비게이션 렌더링
+ * @param {HTMLElement} container - 네비게이션 컨테이너
+ * @param {Object} user - 사용자 정보
+ * @param {string} path - 현재 페이지 경로
+ */
+function renderAuthenticatedNavigation(container, user, path) {
+    container.innerHTML = `
+        <div class="nav-menu">
+            <ul class="nav-links">
+                <li><a href="/" class="nav-link ${path === '' || path === 'index.html' ? 'active' : ''}">홈</a></li>
+                <li><a href="/questions.html" class="nav-link ${path === 'questions.html' ? 'active' : ''}">질문 목록</a></li>
+                <li><a href="/ask.html" class="nav-link ${path === 'ask.html' ? 'active' : ''}">질문하기</a></li>
+                <li><a href="/ai-question.html" class="nav-link ${path === 'ai-question.html' ? 'active' : ''}">AI 질문</a></li>
+                <li><a href="/score-ranking.html" class="nav-link ${path === 'score-ranking.html' || path === 'level-ranking.html' ? 'active' : ''}">랭킹</a></li>
+                <li><a href="/mypage.html" class="nav-link ${path === 'mypage.html' ? 'active' : ''}">마이페이지</a></li>
+            </ul>
+            <div class="user-info">
+                <span>${escapeHtml(user.displayName)}님 (Lv.${user.level || 1}) 포인트: ${user.levelInfo?.points?.current || 0}</span>
+                <a href="/auth/logout" class="logout-btn">로그아웃</a>
+            </div>
+        </div>`;
+}
+
+/**
+ * 비인증 사용자용 네비게이션 렌더링
+ * @param {HTMLElement} container - 네비게이션 컨테이너
+ * @param {string} path - 현재 페이지 경로
+ */
+function renderUnauthenticatedNavigation(container, path) {
+    container.innerHTML = `
+        <ul class="nav-links">
+            <li><a href="/" class="nav-link ${path === '' || path === 'index.html' ? 'active' : ''}">홈</a></li>
+            <li><a href="/questions.html" class="nav-link ${path === 'questions.html' ? 'active' : ''}">질문 목록</a></li>
+            <li><a href="/score-ranking.html" class="nav-link ${path === 'score-ranking.html' || path === 'level-ranking.html' ? 'active' : ''}">랭킹</a></li>
+        </ul>
+        <a href="/auth/google" class="login-btn">Google로 로그인</a>`;
+}
+
+/**
+ * HTML 이스케이프 함수
+ * XSS 공격을 방지하기 위해 HTML 특수문자를 이스케이프
+ * @param {string} text - 이스케이프할 텍스트
+ * @returns {string} 이스케이프된 텍스트
+ */
+function escapeHtml(text) {
+    if (typeof text !== 'string') return text;
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 async function loadQuestions() {
