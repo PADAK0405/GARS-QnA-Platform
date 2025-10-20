@@ -77,9 +77,8 @@ class Database {
      * 랭킹 조회 (상위 10명)
      */
     static async getTopRankings(limit = 10) {
-        const [rankings] = await pool.execute(
-            'SELECT display_name as name, score FROM users ORDER BY score DESC LIMIT ?',
-            [limit]
+        const [rankings] = await pool.query(
+            `SELECT display_name as name, score FROM users ORDER BY score DESC LIMIT ${limit}`
         );
         return rankings;
     }
