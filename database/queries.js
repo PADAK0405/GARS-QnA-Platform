@@ -143,6 +143,53 @@ class Database {
     }
 
     /**
+     * 모든 질문 조회 (관리자용) - 모든 상태 포함
+     */
+    static async getAllQuestionsForAdmin() {
+        const [questions] = await pool.execute(`
+            SELECT 
+                q.id,
+                q.title,
+                q.content,
+                q.created_at,
+                q.status,
+                u.id as author_id,
+                u.display_name as author_name,
+                u.level as author_level
+            FROM questions q
+            LEFT JOIN users u ON q.user_id = u.id
+            ORDER BY q.created_at DESC
+        `);
+
+        // 각 질문에 대한 답변과 이미지 조회 (병렬 처리)
+        const questionsWithDetails = await Promise.all(
+            questions.map(async (question) => {
+                const [answers, questionImages] = await Promise.all([
+                    this.getActiveAnswersByQuestionId(question.id),
+                    this.getImagesByEntity('question', question.id)
+                ]);
+
+                return {
+                    id: question.id,
+                    title: question.title,
+                    content: question.content,
+                    author: {
+                        id: question.author_id,
+                        name: question.author_name,
+                        level: question.author_level
+                    },
+                    answers: answers,
+                    images: questionImages,
+                    created_at: question.created_at,
+                    status: question.status || 'active'
+                };
+            })
+        );
+
+        return questionsWithDetails;
+    }
+
+    /**
      * 질문 ID로 조회 (작성자 정보 포함)
      */
     static async getQuestionById(questionId) {

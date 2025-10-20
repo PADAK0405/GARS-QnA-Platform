@@ -805,6 +805,19 @@ app.get('/api/questions', async (req, res) => {
     }
 });
 
+// 관리자용 질문 목록 조회 (모든 상태 포함)
+app.get('/api/admin/questions', requireAdmin, async (req, res) => {
+    try {
+        console.log('관리자 질문 목록 조회 요청');
+        const questions = await Database.getAllQuestionsForAdmin();
+        console.log(`관리자 질문 ${questions.length}개 조회 완료`);
+        res.json(questions);
+    } catch (error) {
+        console.error('관리자 질문 조회 오류:', error);
+        res.status(500).json({ error: '질문을 불러오는데 실패했습니다.' });
+    }
+});
+
 app.get('/api/rankings', async (req, res) => {
     try {
         const rankings = await Database.getTopRankings(10);

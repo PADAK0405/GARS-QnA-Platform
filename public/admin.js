@@ -402,7 +402,7 @@ async function restoreUser(userId) {
 // 질문/답변 관리 함수들
 async function loadQuestions(status = 'all') {
     try {
-        const response = await fetch('/api/questions');
+        const response = await fetch('/api/admin/questions');
         const questions = await response.json();
         
         // 상태별 필터링
