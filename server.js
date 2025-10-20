@@ -15,101 +15,148 @@ const Database = require('./database/queries');
 const geminiAI = require('./utils/gemini-ai');
 const securityLogger = require('./utils/security-logger');
 
-// 서버 시작 시 자동 설정 함수
+/**
+ * 서버 초기화 함수
+ * 데이터베이스 스키마 업데이트, 테이블 생성, 시스템 초기화를 순차적으로 실행
+ * @async
+ * @throws {Error} 초기화 과정에서 오류 발생 시
+ */
 async function initializeServer() {
-    console.log('🚀 서버 초기화를 시작합니다...');
+    console.log('🚀 서버 초기화 시작');
     
     try {
-        // 1. 데이터베이스 스키마 업데이트
-        console.log('📊 데이터베이스 스키마를 확인하고 업데이트합니다...');
-        await updateDatabaseSchema();
+        // 초기화 작업 목록 정의
+        const initTasks = [
+            { name: '데이터베이스 스키마 업데이트', fn: updateDatabaseSchema },
+            { name: '포인트 시스템 스키마 업데이트', fn: updatePointsSchema },
+            { name: '신고 시스템 테이블 생성', fn: createReportsTable },
+            { name: '사용자 레벨 시스템 초기화', fn: migrateUserLevels },
+            { name: '캘린더 테이블 생성', fn: createCalendarTable }
+        ];
         
-        // 2. 포인트 시스템 스키마 업데이트
-        console.log('💎 포인트 시스템 스키마를 확인하고 업데이트합니다...');
-        await updatePointsSchema();
+        // 각 초기화 작업을 순차적으로 실행
+        for (const task of initTasks) {
+            console.log(`📊 ${task.name} 중...`);
+            await task.fn();
+        }
         
-        // 3. 신고 시스템 테이블 생성
-        console.log('🚨 신고 시스템 테이블을 확인하고 생성합니다...');
-        await createReportsTable();
-        
-        // 4. 사용자 레벨 시스템 마이그레이션
-        console.log('👥 사용자 레벨 시스템을 초기화합니다...');
-        await migrateUserLevels();
-        
-        // 5. 캘린더 테이블 생성
-        console.log('📅 캘린더 테이블을 확인하고 생성합니다...');
-        await createCalendarTable();
-        
-        console.log('✅ 서버 초기화가 완료되었습니다!');
+        console.log('✅ 서버 초기화 완료');
     } catch (error) {
         console.error('❌ 서버 초기화 실패:', error);
         process.exit(1);
     }
 }
 
-// 데이터베이스 스키마 업데이트
+/**
+ * 데이터베이스 스키마 업데이트
+ * 사용자 테이블에 레벨, 경험치, 상태 메시지 컬럼과 인덱스를 추가
+ * @async
+ * @throws {Error} 스키마 업데이트 실패 시
+ */
 async function updateDatabaseSchema() {
     const pool = require('./database/connection');
     
-    const alterQueries = [
-        'ALTER TABLE users ADD COLUMN level INT DEFAULT 1',
-        'ALTER TABLE users ADD COLUMN experience INT DEFAULT 0',
-        'ALTER TABLE users ADD COLUMN status_message VARCHAR(200) DEFAULT NULL',
-        'ALTER TABLE users ADD INDEX idx_level (level DESC)',
-        'ALTER TABLE users ADD INDEX idx_experience (experience DESC)'
+    // 스키마 업데이트 쿼리 정의
+    const schemaUpdates = [
+        { 
+            query: 'ALTER TABLE users ADD COLUMN level INT DEFAULT 1',
+            description: 'level 컬럼',
+            errorCodes: ['ER_DUP_FIELDNAME']
+        },
+        { 
+            query: 'ALTER TABLE users ADD COLUMN experience INT DEFAULT 0',
+            description: 'experience 컬럼',
+            errorCodes: ['ER_DUP_FIELDNAME']
+        },
+        { 
+            query: 'ALTER TABLE users ADD COLUMN status_message VARCHAR(200) DEFAULT NULL',
+            description: 'status_message 컬럼',
+            errorCodes: ['ER_DUP_FIELDNAME']
+        },
+        { 
+            query: 'ALTER TABLE users ADD INDEX idx_level (level DESC)',
+            description: 'level 인덱스',
+            errorCodes: ['ER_DUP_KEYNAME']
+        },
+        { 
+            query: 'ALTER TABLE users ADD INDEX idx_experience (experience DESC)',
+            description: 'experience 인덱스',
+            errorCodes: ['ER_DUP_KEYNAME']
+        }
     ];
     
-    for (const query of alterQueries) {
+    // 각 스키마 업데이트 실행
+    for (const update of schemaUpdates) {
         try {
-            await pool.execute(query);
-            console.log(`  ✅ 스키마 업데이트: ${query.split(' ')[2]} 컬럼`);
+            await pool.execute(update.query);
+            console.log(`  ✅ 스키마 업데이트: ${update.description}`);
         } catch (error) {
-            if (error.code === 'ER_DUP_FIELDNAME' || error.code === 'ER_DUP_KEYNAME') {
-                console.log(`  ⚠️  이미 존재: ${query.split(' ')[2]} 컬럼`);
+            if (update.errorCodes.includes(error.code)) {
+                console.log(`  ⚠️  이미 존재: ${update.description}`);
             } else {
+                console.error(`  ❌ 스키마 업데이트 실패: ${update.description}`, error);
                 throw error;
             }
         }
     }
 }
 
-// 포인트 시스템 스키마 업데이트
+/**
+ * 포인트 시스템 스키마 업데이트
+ * 포인트 관련 테이블과 스키마를 업데이트
+ * @async
+ * @throws {Error} 포인트 시스템 업데이트 실패 시
+ */
 async function updatePointsSchema() {
     try {
         const updatePoints = require('./scripts/update-schema-points');
         await updatePoints();
-        console.log('✅ 포인트 시스템 스키마 업데이트 완료');
+        console.log('  ✅ 포인트 시스템 스키마 업데이트 완료');
     } catch (error) {
-        console.error('❌ 포인트 시스템 스키마 업데이트 실패:', error);
+        console.error('  ❌ 포인트 시스템 스키마 업데이트 실패:', error);
         throw error;
     }
 }
 
-// 사용자 레벨 시스템 마이그레이션
+/**
+ * 사용자 레벨 시스템 마이그레이션
+ * 기존 사용자들의 레벨과 경험치를 기본값으로 초기화
+ * @async
+ */
 async function migrateUserLevels() {
     const pool = require('./database/connection');
     
-    // 기존 사용자들의 레벨과 EXP를 기본값으로 설정
-    const [result] = await pool.execute(`
-        UPDATE users 
-        SET level = 1, experience = 0 
-        WHERE level IS NULL OR experience IS NULL
-    `);
-    
-    if (result.affectedRows > 0) {
-        console.log(`  ✅ ${result.affectedRows}명의 사용자 레벨 정보가 업데이트되었습니다.`);
-    } else {
-        console.log(`  ℹ️  업데이트할 사용자가 없습니다.`);
+    try {
+        // 레벨과 경험치가 null인 사용자들을 기본값으로 설정
+        const [result] = await pool.execute(`
+            UPDATE users 
+            SET level = 1, experience = 0 
+            WHERE level IS NULL OR experience IS NULL
+        `);
+        
+        if (result.affectedRows > 0) {
+            console.log(`  ✅ ${result.affectedRows}명의 사용자 레벨 정보 업데이트`);
+        } else {
+            console.log('  ℹ️  업데이트할 사용자 없음');
+        }
+    } catch (error) {
+        console.error('  ❌ 사용자 레벨 마이그레이션 실패:', error);
+        throw error;
     }
 }
 
-// 신고 테이블 생성 함수
+/**
+ * 신고 테이블 생성
+ * 사용자 신고 시스템을 위한 reports 테이블을 생성하고 인덱스 설정
+ * @async
+ * @throws {Error} 테이블 생성 실패 시
+ */
 async function createReportsTable() {
     const pool = require('./database/connection');
     
     try {
-        // 신고 테이블 생성
-        await pool.execute(`
+        // 신고 테이블 생성 쿼리
+        const createTableQuery = `
             CREATE TABLE IF NOT EXISTS reports (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 reporter_id VARCHAR(255) NOT NULL,
@@ -131,14 +178,15 @@ async function createReportsTable() {
                 INDEX idx_created_at (created_at DESC),
                 UNIQUE KEY unique_user_report (reporter_id, target_type, target_id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-        `);
+        `;
         
-        console.log('  ✅ 신고 테이블이 확인/생성되었습니다.');
+        await pool.execute(createTableQuery);
+        console.log('  ✅ 신고 테이블 확인/생성 완료');
         
         // 테이블 존재 확인
         const [tables] = await pool.execute('SHOW TABLES LIKE "reports"');
         if (tables.length > 0) {
-            console.log('  📋 reports 테이블이 준비되었습니다.');
+            console.log('  📋 reports 테이블 준비 완료');
         }
         
     } catch (error) {
@@ -147,13 +195,18 @@ async function createReportsTable() {
     }
 }
 
-// 캘린더 테이블 생성 함수
+/**
+ * 캘린더 테이블 생성
+ * 캘린더 이벤트 관리를 위한 calendar_events 테이블을 생성
+ * @async
+ * @throws {Error} 테이블 생성 실패 시
+ */
 async function createCalendarTable() {
     const pool = require('./database/connection');
     
     try {
-        // calendar_events 테이블 생성
-        await pool.execute(`
+        // 캘린더 이벤트 테이블 생성 쿼리
+        const createTableQuery = `
             CREATE TABLE IF NOT EXISTS calendar_events (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 title VARCHAR(255) NOT NULL,
@@ -161,16 +214,19 @@ async function createCalendarTable() {
                 time TIME NOT NULL,
                 description TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_date (date),
+                INDEX idx_date_time (date, time)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-        `);
+        `;
         
-        console.log('  ✅ calendar_events 테이블이 확인/생성되었습니다.');
+        await pool.execute(createTableQuery);
+        console.log('  ✅ calendar_events 테이블 확인/생성 완료');
         
         // 테이블 존재 확인
         const [tables] = await pool.execute('SHOW TABLES LIKE "calendar_events"');
         if (tables.length > 0) {
-            console.log('  📅 calendar_events 테이블이 준비되었습니다.');
+            console.log('  📅 calendar_events 테이블 준비 완료');
         }
         
     } catch (error) {
@@ -179,16 +235,20 @@ async function createCalendarTable() {
     }
 }
 
+// ========== Express 애플리케이션 초기화 ==========
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ========== Express 설정 ==========
+// ========== Express 기본 설정 ==========
 // Nginx 프록시 뒤에서 실행되므로 trust proxy 설정
 app.set('trust proxy', 1);
 
 // ========== 보안 미들웨어 설정 ==========
 
-// 1. Helmet - 보안 헤더 설정 (CSP 문제 해결)
+/**
+ * Helmet 보안 헤더 설정
+ * CSP(Content Security Policy) 및 기타 보안 헤더를 설정하여 XSS, CSRF 등의 공격을 방지
+ */
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
@@ -205,22 +265,25 @@ app.use(helmet({
             baseUri: ["'self'"],
             formAction: ["'self'"],
             frameAncestors: ["'self'"]
-            // upgradeInsecureRequests 제거 - HTTP 업그레이드 방지
         }
     },
     crossOriginEmbedderPolicy: false
 }));
 
-// 2. Rate Limiting - API 요청 제한 (개발 모드에서는 완화)
+/**
+ * Rate Limiting 설정
+ * API 요청 제한을 통해 DDoS 공격과 과도한 요청을 방지
+ */
 const generalLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15분
-    max: process.env.NODE_ENV === 'production' ? 100 : 1000, // 개발 모드에서는 1000 요청
+    windowMs: 15 * 60 * 1000, // 15분 윈도우
+    max: process.env.NODE_ENV === 'production' ? 100 : 1000, // 프로덕션: 100, 개발: 1000 요청
     message: {
         error: '너무 많은 요청입니다. 15분 후 다시 시도해주세요.'
     },
     standardHeaders: true,
     legacyHeaders: false,
     handler: (req, res) => {
+        // 보안 로그에 Rate Limit 초과 기록
         securityLogger.logRateLimitExceeded(req, 100, 15 * 60 * 1000);
         res.status(429).json({
             error: '너무 많은 요청입니다. 15분 후 다시 시도해주세요.'
@@ -228,8 +291,12 @@ const generalLimiter = rateLimit({
     }
 });
 
+/**
+ * 엄격한 Rate Limiting 설정
+ * 민감한 작업(로그인, 회원가입 등)에 대한 엄격한 요청 제한
+ */
 const strictLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15분
+    windowMs: 15 * 60 * 1000, // 15분 윈도우
     max: 5, // 최대 5 요청
     message: {
         error: '너무 많은 요청입니다. 15분 후 다시 시도해주세요.'
@@ -238,8 +305,12 @@ const strictLimiter = rateLimit({
     legacyHeaders: false,
 });
 
+/**
+ * 인증 관련 Rate Limiting 설정
+ * 로그인, 회원가입 등 인증 관련 요청에 대한 제한
+ */
 const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15분
+    windowMs: 15 * 60 * 1000, // 15분 윈도우
     max: 10, // 최대 10 요청
     message: {
         error: '인증 요청이 너무 많습니다. 15분 후 다시 시도해주세요.'
@@ -248,43 +319,56 @@ const authLimiter = rateLimit({
     legacyHeaders: false,
 });
 
-// 3. 일반 Rate Limiting 적용 (개발 모드에서는 비활성화)
+// ========== 미들웨어 적용 ==========
+
+// 프로덕션 환경에서만 일반 Rate Limiting 적용
 if (process.env.NODE_ENV === 'production') {
     app.use('/api', generalLimiter);
 }
 
-// 4. 요청 크기 제한
+/**
+ * 요청 크기 제한 설정
+ * JSON과 URL 인코딩된 데이터의 최대 크기를 10MB로 제한
+ */
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+/**
+ * Multer 파일 저장소 설정
+ * 업로드된 파일을 public/uploads/ 디렉토리에 저장하고 고유한 파일명 생성
+ */
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, 'public/uploads/');
     },
     filename: (req, file, cb) => {
+        // 타임스탬프와 랜덤 숫자를 조합하여 고유한 파일명 생성
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
         cb(null, uniqueSuffix + path.extname(file.originalname));
     }
 });
 
-// 6. 파일 업로드 보안 강화
+/**
+ * Multer 파일 업로드 설정
+ * 보안 강화된 파일 업로드 설정으로 악성 파일 업로드 방지
+ */
 const upload = multer({
     storage: storage,
     limits: {
-        fileSize: 5 * 1024 * 1024, // 5MB 제한
-        files: 5, // 최대 5개 파일
+        fileSize: 5 * 1024 * 1024, // 5MB 파일 크기 제한
+        files: 5, // 최대 5개 파일 동시 업로드
         fieldSize: 10 * 1024 * 1024 // 필드 크기 제한
     },
     fileFilter: (req, file, cb) => {
-        // 파일 확장자 검사
+        // 허용된 파일 확장자 검사
         const allowedExtensions = /\.(jpeg|jpg|png|gif|webp)$/i;
         const extname = allowedExtensions.test(path.extname(file.originalname));
         
-        // MIME 타입 검사
+        // 허용된 MIME 타입 검사
         const allowedMimeTypes = /^image\/(jpeg|jpg|png|gif|webp)$/i;
         const mimetype = allowedMimeTypes.test(file.mimetype);
         
-        // 파일명 검사 (특수문자, 경로 탐색 공격 방지)
+        // 파일명 보안 검사 (경로 탐색 공격 방지)
         const filename = path.basename(file.originalname);
         const dangerousChars = /[<>:"/\\|?*\x00-\x1f]/;
         const hasDangerousChars = dangerousChars.test(filename);
@@ -297,60 +381,81 @@ const upload = multer({
     }
 });
 
-// 파일 업로드 제한 미들웨어
+/**
+ * 파일 업로드 Rate Limiting 설정
+ * 파일 업로드 요청을 제한하여 서버 과부하 방지
+ */
 const uploadLimiter = rateLimit({
-    windowMs: 60 * 1000, // 1분
+    windowMs: 60 * 1000, // 1분 윈도우
     max: 10, // 최대 10개 파일 업로드
     message: {
         error: '파일 업로드 요청이 너무 많습니다. 잠시 후 다시 시도해주세요.'
     }
 });
 
+// ========== Google OAuth 설정 ==========
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const CALLBACK_URL = process.env.CALLBACK_URL || 'http://localhost:3000/auth/google/callback';
 
-// 5. 세션 보안 강화
+/**
+ * 세션 보안 설정
+ * 세션 쿠키의 보안을 강화하여 XSS, CSRF 공격을 방지
+ */
 app.use(session({
     secret: process.env.SESSION_SECRET || crypto.randomBytes(64).toString('hex'),
     resave: false,
     saveUninitialized: false,
-    name: 'qna_session', // 기본 세션 이름 변경
+    name: 'qna_session', // 기본 세션 이름 변경으로 보안 강화
     cookie: {
         secure: process.env.NODE_ENV === 'production', // HTTPS에서만 쿠키 전송
-        httpOnly: true, // XSS 방지
-        maxAge: 24 * 60 * 60 * 1000, // 24시간
-        sameSite: 'lax' // CSRF 방지
+        httpOnly: true, // XSS 공격 방지
+        maxAge: 24 * 60 * 60 * 1000, // 24시간 세션 유지
+        sameSite: 'lax' // CSRF 공격 방지
     },
-    rolling: true, // 세션 갱신
+    rolling: true, // 세션 자동 갱신
     proxy: process.env.NODE_ENV === 'production' // 프록시 환경에서 신뢰
 }));
 
+// ========== Passport 인증 설정 ==========
 app.use(passport.initialize());
 app.use(passport.session());
 
-// 7. 입력 검증 미들웨어
+// ========== 입력 검증 미들웨어 ==========
+
+/**
+ * 질문 입력 검증 미들웨어
+ * 제목과 내용의 길이 및 형식을 검증하고 XSS 공격을 방지
+ */
 const validateQuestion = [
     body('title')
         .trim()
         .isLength({ min: 1, max: 500 })
         .withMessage('제목은 1-500자 사이여야 합니다.')
-        .escape(),
+        .escape(), // XSS 공격 방지
     body('content')
         .trim()
         .isLength({ min: 1, max: 5000 })
         .withMessage('내용은 1-5000자 사이여야 합니다.')
-        .escape()
+        .escape() // XSS 공격 방지
 ];
 
+/**
+ * 답변 입력 검증 미들웨어
+ * 답변 내용의 길이 및 형식을 검증하고 XSS 공격을 방지
+ */
 const validateAnswer = [
     body('content')
         .trim()
         .isLength({ min: 1, max: 5000 })
         .withMessage('답변 내용은 1-5000자 사이여야 합니다.')
-        .escape()
+        .escape() // XSS 공격 방지
 ];
 
+/**
+ * 신고 입력 검증 미들웨어
+ * 신고 대상, ID, 사유, 설명의 유효성을 검증하고 XSS 공격을 방지
+ */
 const validateReport = [
     body('targetType')
         .isIn(['question', 'answer', 'user'])
@@ -366,14 +471,17 @@ const validateReport = [
         .trim()
         .isLength({ max: 1000 })
         .withMessage('신고 설명은 1000자 이하여야 합니다.')
-        .escape()
+        .escape() // XSS 공격 방지
 ];
 
-// 입력 검증 결과 처리 미들웨어
+/**
+ * 입력 검증 결과 처리 미들웨어
+ * express-validator의 검증 결과를 확인하고 오류가 있으면 400 응답 반환
+ */
 const handleValidationErrors = (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        // 보안 로깅
+        // 보안 로깅에 검증 오류 기록
         securityLogger.logValidationError(req, errors.array());
         
         return res.status(400).json({
@@ -384,7 +492,14 @@ const handleValidationErrors = (req, res, next) => {
     next();
 };
 
-// 8. XSS 방지 헬퍼 함수
+// ========== 보안 헬퍼 함수 ==========
+
+/**
+ * XSS 방지 입력 정화 함수
+ * HTML 특수문자를 이스케이프하여 XSS 공격을 방지
+ * @param {string} input - 정화할 입력 문자열
+ * @returns {string} 정화된 문자열
+ */
 const sanitizeInput = (input) => {
     if (typeof input !== 'string') return input;
     return input
@@ -395,7 +510,12 @@ const sanitizeInput = (input) => {
         .replace(/\//g, '&#x2F;');
 };
 
-// 9. CSRF 보호 구현
+/**
+ * CSRF 토큰 생성 함수
+ * 세션 기반 CSRF 토큰을 생성하여 CSRF 공격을 방지
+ * @param {Object} req - Express 요청 객체
+ * @returns {string} 생성된 CSRF 토큰
+ */
 const generateCSRFToken = (req) => {
     if (!req.session.csrfSecret) {
         req.session.csrfSecret = crypto.randomBytes(32).toString('hex');
@@ -406,6 +526,13 @@ const generateCSRFToken = (req) => {
         .digest('hex');
 };
 
+/**
+ * CSRF 토큰 검증 함수
+ * 요청의 CSRF 토큰이 유효한지 검증
+ * @param {Object} req - Express 요청 객체
+ * @param {string} token - 검증할 CSRF 토큰
+ * @returns {boolean} 토큰 유효성 여부
+ */
 const validateCSRFToken = (req, token) => {
     if (!token || !req.session.csrfSecret) {
         return false;
@@ -416,22 +543,31 @@ const validateCSRFToken = (req, token) => {
         .update(req.sessionID)
         .digest('hex');
     
+    // 타이밍 공격 방지를 위한 안전한 비교
     return crypto.timingSafeEqual(
         Buffer.from(token, 'hex'),
         Buffer.from(expectedToken, 'hex')
     );
 };
 
-// CSRF 토큰 미들웨어
+/**
+ * CSRF 보호 미들웨어
+ * POST, PUT, DELETE 요청에 대해 CSRF 토큰을 검증
+ * @param {Object} req - Express 요청 객체
+ * @param {Object} res - Express 응답 객체
+ * @param {Function} next - 다음 미들웨어 함수
+ */
 const csrfProtection = (req, res, next) => {
+    // GET, HEAD, OPTIONS 요청은 CSRF 검증 제외
     if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') {
-        // GET 요청은 CSRF 검증 제외
         return next();
     }
     
+    // CSRF 토큰 추출 (body 또는 header에서)
     const token = req.body._csrf || req.headers['x-csrf-token'];
     
     if (!validateCSRFToken(req, token)) {
+        // 보안 위협 로깅
         securityLogger.logSecurityThreat('CSRF', 'Invalid CSRF token', req);
         return res.status(403).json({ error: 'CSRF 토큰이 유효하지 않습니다.' });
     }
@@ -439,7 +575,13 @@ const csrfProtection = (req, res, next) => {
     next();
 };
 
-// 관리자 권한 미들웨어
+/**
+ * 관리자 권한 확인 미들웨어
+ * 요청한 사용자가 관리자 권한을 가지고 있는지 확인
+ * @param {Object} req - Express 요청 객체
+ * @param {Object} res - Express 응답 객체
+ * @param {Function} next - 다음 미들웨어 함수
+ */
 async function requireAdmin(req, res, next) {
     if (!req.user) {
         return res.status(401).json({ error: '로그인이 필요합니다.' });
@@ -457,23 +599,33 @@ async function requireAdmin(req, res, next) {
     }
 }
 
-app.use(express.json());
+// ========== 정적 파일 서빙 ==========
 app.use(express.static('public'));
 
-// 10. 에러 처리 미들웨어 (정보 노출 방지)
+// ========== 에러 처리 미들웨어 ==========
+
+/**
+ * 전역 에러 처리 미들웨어
+ * 서버 오류를 안전하게 처리하고 민감한 정보 노출을 방지
+ * @param {Error} err - 발생한 오류 객체
+ * @param {Object} req - Express 요청 객체
+ * @param {Object} res - Express 응답 객체
+ * @param {Function} next - 다음 미들웨어 함수
+ */
 app.use((err, req, res, next) => {
     console.error('Server Error:', err);
     
-    // 보안 로깅
+    // 보안 로깅에 오류 기록
     securityLogger.logSuspiciousActivity('Server Error', req, { error: err.message });
     
-    // 프로덕션에서는 상세한 에러 정보 숨김
+    // 프로덕션 환경에서는 상세한 오류 정보 숨김
     if (process.env.NODE_ENV === 'production') {
         res.status(500).json({
             error: '서버 내부 오류가 발생했습니다.',
             message: '잠시 후 다시 시도해주세요.'
         });
     } else {
+        // 개발 환경에서는 상세한 오류 정보 제공
         res.status(500).json({
             error: '서버 내부 오류가 발생했습니다.',
             message: err.message,
@@ -482,20 +634,40 @@ app.use((err, req, res, next) => {
     }
 });
 
+// ========== Passport 사용자 직렬화/역직렬화 ==========
 
+/**
+ * 사용자 직렬화
+ * 세션에 저장할 사용자 정보를 직렬화
+ * @param {Object} user - 사용자 객체
+ * @param {Function} done - 완료 콜백 함수
+ */
 passport.serializeUser((user, done) => {
     done(null, user.id);
 });
 
+/**
+ * 사용자 역직렬화
+ * 세션에서 사용자 정보를 복원
+ * @param {string} id - 사용자 ID
+ * @param {Function} done - 완료 콜백 함수
+ */
 passport.deserializeUser(async (id, done) => {
     try {
         const user = await Database.findUserById(id);
         done(null, user);
     } catch (error) {
+        console.error('사용자 역직렬화 오류:', error);
         done(error, null);
     }
 });
 
+// ========== Google OAuth 전략 설정 ==========
+
+/**
+ * Google OAuth 전략 설정
+ * Google 계정을 통한 사용자 인증 처리
+ */
 passport.use(new GoogleStrategy({
     clientID: GOOGLE_CLIENT_ID,
     clientSecret: GOOGLE_CLIENT_SECRET,
@@ -503,9 +675,11 @@ passport.use(new GoogleStrategy({
 },
 async (accessToken, refreshToken, profile, done) => {
     try {
+        // 사용자 찾기 또는 생성
         const user = await Database.findOrCreateUser(profile);
         return done(null, user);
     } catch (error) {
+        console.error('Google OAuth 인증 오류:', error);
         return done(error, null);
     }
 }));
