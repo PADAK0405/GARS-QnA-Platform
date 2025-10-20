@@ -178,13 +178,23 @@
                 
                 // 질문 등록
                 console.log('질문 등록 요청:', { title, content, images: imageUrls });
+                
+                // CSRF 토큰 가져오기
+                const csrfToken = window.csrfToken || document.querySelector('meta[name="csrf-token"]')?.content;
+                console.log('사용할 CSRF 토큰:', csrfToken);
+                
                 const response = await fetch('/api/questions', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfToken
+                    },
+                    credentials: 'include',
                     body: JSON.stringify({
                         title,
                         content,
-                        images: imageUrls
+                        images: imageUrls,
+                        _csrf: csrfToken
                     })
                 });
                 
