@@ -845,6 +845,52 @@ class Database {
         return answersWithImages;
     }
 
+    // ========== 캘린더 관련 쿼리 ==========
+    
+    /**
+     * 캘린더 이벤트 목록 조회
+     */
+    static async getCalendarEvents() {
+        const [events] = await pool.execute(`
+            SELECT id, title, date, time, description, created_at
+            FROM calendar_events
+            ORDER BY date ASC, time ASC
+        `);
+        return events;
+    }
+
+    /**
+     * 캘린더 이벤트 생성
+     */
+    static async createCalendarEvent(title, date, time, description = null) {
+        const [result] = await pool.execute(`
+            INSERT INTO calendar_events (title, date, time, description)
+            VALUES (?, ?, ?, ?)
+        `, [title, date, time, description]);
+        return result.insertId;
+    }
+
+    /**
+     * 캘린더 이벤트 수정
+     */
+    static async updateCalendarEvent(eventId, title, date, time, description = null) {
+        await pool.execute(`
+            UPDATE calendar_events
+            SET title = ?, date = ?, time = ?, description = ?
+            WHERE id = ?
+        `, [title, date, time, description, eventId]);
+    }
+
+    /**
+     * 캘린더 이벤트 삭제
+     */
+    static async deleteCalendarEvent(eventId) {
+        await pool.execute(`
+            DELETE FROM calendar_events
+            WHERE id = ?
+        `, [eventId]);
+    }
+
     /**
      * 데이터베이스 초기화 (개발 환경 전용)
      */

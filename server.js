@@ -36,6 +36,10 @@ async function initializeServer() {
         console.log('👥 사용자 레벨 시스템을 초기화합니다...');
         await migrateUserLevels();
         
+        // 5. 캘린더 테이블 생성
+        console.log('📅 캘린더 테이블을 확인하고 생성합니다...');
+        await createCalendarTable();
+        
         console.log('✅ 서버 초기화가 완료되었습니다!');
     } catch (error) {
         console.error('❌ 서버 초기화 실패:', error);
@@ -139,6 +143,38 @@ async function createReportsTable() {
         
     } catch (error) {
         console.error('  ❌ 신고 테이블 생성 실패:', error);
+        throw error;
+    }
+}
+
+// 캘린더 테이블 생성 함수
+async function createCalendarTable() {
+    const pool = require('./database/connection');
+    
+    try {
+        // calendar_events 테이블 생성
+        await pool.execute(`
+            CREATE TABLE IF NOT EXISTS calendar_events (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                title VARCHAR(255) NOT NULL,
+                date DATE NOT NULL,
+                time TIME NOT NULL,
+                description TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+        
+        console.log('  ✅ calendar_events 테이블이 확인/생성되었습니다.');
+        
+        // 테이블 존재 확인
+        const [tables] = await pool.execute('SHOW TABLES LIKE "calendar_events"');
+        if (tables.length > 0) {
+            console.log('  📅 calendar_events 테이블이 준비되었습니다.');
+        }
+        
+    } catch (error) {
+        console.error('  ❌ 캘린더 테이블 생성 실패:', error);
         throw error;
     }
 }
@@ -1423,6 +1459,91 @@ app.post('/api/reports', csrfProtection, validateReport, handleValidationErrors,
             return res.status(409).json({ error: error.message });
         }
         res.status(500).json({ error: '신고 접수에 실패했습니다.' });
+    }
+});
+
+// 캘린더 이벤트 목록 조회
+app.get('/api/calendar/events', async (req, res) => {
+    try {
+        const events = await Database.getCalendarEvents();
+        res.json(events);
+    } catch (error) {
+        console.error('캘린더 이벤트 조회 오류:', error);
+        res.status(500).json({ error: '이벤트 조회에 실패했습니다.' });
+    }
+});
+
+// 캘린더 이벤트 추가 (관리자용)
+app.post('/api/calendar/events', async (req, res) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ error: '로그인이 필요합니다.' });
+        }
+
+        const user = await Database.findUserById(req.user.id);
+        if (!user || !['admin', 'moderator', 'super_admin'].includes(user.role)) {
+            return res.status(403).json({ error: '관리자 권한이 필요합니다.' });
+        }
+
+        const { title, date, time, description } = req.body;
+        
+        if (!title || !date || !time) {
+            return res.status(400).json({ error: '제목, 날짜, 시간은 필수입니다.' });
+        }
+
+        const eventId = await Database.createCalendarEvent(title, date, time, description);
+        res.json({ success: true, eventId });
+    } catch (error) {
+        console.error('캘린더 이벤트 생성 오류:', error);
+        res.status(500).json({ error: '이벤트 생성에 실패했습니다.' });
+    }
+});
+
+// 캘린더 이벤트 수정 (관리자용)
+app.put('/api/calendar/events/:id', async (req, res) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ error: '로그인이 필요합니다.' });
+        }
+
+        const user = await Database.findUserById(req.user.id);
+        if (!user || !['admin', 'moderator', 'super_admin'].includes(user.role)) {
+            return res.status(403).json({ error: '관리자 권한이 필요합니다.' });
+        }
+
+        const { title, date, time, description } = req.body;
+        const eventId = req.params.id;
+        
+        if (!title || !date || !time) {
+            return res.status(400).json({ error: '제목, 날짜, 시간은 필수입니다.' });
+        }
+
+        await Database.updateCalendarEvent(eventId, title, date, time, description);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('캘린더 이벤트 수정 오류:', error);
+        res.status(500).json({ error: '이벤트 수정에 실패했습니다.' });
+    }
+});
+
+// 캘린더 이벤트 삭제 (관리자용)
+app.delete('/api/calendar/events/:id', async (req, res) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ error: '로그인이 필요합니다.' });
+        }
+
+        const user = await Database.findUserById(req.user.id);
+        if (!user || !['admin', 'moderator', 'super_admin'].includes(user.role)) {
+            return res.status(403).json({ error: '관리자 권한이 필요합니다.' });
+        }
+
+        const eventId = req.params.id;
+        await Database.deleteCalendarEvent(eventId);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('캘린더 이벤트 삭제 오류:', error);
+        res.status(500).json({ error: '이벤트 삭제에 실패했습니다.' });
     }
 });
 
