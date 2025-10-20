@@ -848,46 +848,108 @@ class Database {
     
     /**
      * 캘린더 이벤트 목록 조회
+     * 모든 캘린더 이벤트를 날짜와 시간 순으로 정렬하여 반환합니다.
+     * @returns {Promise<Array>} 이벤트 목록 배열
+     * @throws {Error} 데이터베이스 쿼리 실행 실패 시
      */
     static async getCalendarEvents() {
-        const [events] = await pool.execute(`
-            SELECT id, title, date, time, description, created_at
-            FROM calendar_events
-            ORDER BY date ASC, time ASC
-        `);
-        return events;
+        try {
+            const [events] = await pool.execute(`
+                SELECT id, title, date, time, description, created_at
+                FROM calendar_events
+                ORDER BY date ASC, time ASC
+            `);
+            return events;
+        } catch (error) {
+            console.error('캘린더 이벤트 조회 오류:', error);
+            throw new Error('이벤트 목록을 불러오는데 실패했습니다.');
+        }
     }
 
     /**
      * 캘린더 이벤트 생성
+     * 새로운 캘린더 이벤트를 데이터베이스에 추가합니다.
+     * @param {string} title - 이벤트 제목
+     * @param {string} date - 이벤트 날짜 (YYYY-MM-DD 형식)
+     * @param {string} time - 이벤트 시간 (HH:MM 형식)
+     * @param {string|null} description - 이벤트 설명 (선택사항)
+     * @returns {Promise<number>} 생성된 이벤트의 ID
+     * @throws {Error} 데이터베이스 쿼리 실행 실패 시
      */
     static async createCalendarEvent(title, date, time, description = null) {
-        const [result] = await pool.execute(`
-            INSERT INTO calendar_events (title, date, time, description)
-            VALUES (?, ?, ?, ?)
-        `, [title, date, time, description]);
-        return result.insertId;
+        try {
+            // 입력 데이터 유효성 검사
+            if (!title || !date || !time) {
+                throw new Error('제목, 날짜, 시간은 필수 입력 항목입니다.');
+            }
+            
+            const [result] = await pool.execute(`
+                INSERT INTO calendar_events (title, date, time, description)
+                VALUES (?, ?, ?, ?)
+            `, [title, date, time, description]);
+            
+            return result.insertId;
+        } catch (error) {
+            console.error('캘린더 이벤트 생성 오류:', error);
+            throw new Error('이벤트 생성에 실패했습니다.');
+        }
     }
 
     /**
      * 캘린더 이벤트 수정
+     * 기존 캘린더 이벤트의 정보를 업데이트합니다.
+     * @param {number} eventId - 수정할 이벤트 ID
+     * @param {string} title - 새로운 이벤트 제목
+     * @param {string} date - 새로운 이벤트 날짜 (YYYY-MM-DD 형식)
+     * @param {string} time - 새로운 이벤트 시간 (HH:MM 형식)
+     * @param {string|null} description - 새로운 이벤트 설명 (선택사항)
+     * @returns {Promise<boolean>} 수정 성공 여부
+     * @throws {Error} 데이터베이스 쿼리 실행 실패 시
      */
     static async updateCalendarEvent(eventId, title, date, time, description = null) {
-        await pool.execute(`
-            UPDATE calendar_events
-            SET title = ?, date = ?, time = ?, description = ?
-            WHERE id = ?
-        `, [title, date, time, description, eventId]);
+        try {
+            // 입력 데이터 유효성 검사
+            if (!eventId || !title || !date || !time) {
+                throw new Error('이벤트 ID, 제목, 날짜, 시간은 필수 입력 항목입니다.');
+            }
+            
+            const [result] = await pool.execute(`
+                UPDATE calendar_events
+                SET title = ?, date = ?, time = ?, description = ?
+                WHERE id = ?
+            `, [title, date, time, description, eventId]);
+            
+            return result.affectedRows > 0;
+        } catch (error) {
+            console.error('캘린더 이벤트 수정 오류:', error);
+            throw new Error('이벤트 수정에 실패했습니다.');
+        }
     }
 
     /**
      * 캘린더 이벤트 삭제
+     * 지정된 ID의 캘린더 이벤트를 삭제합니다.
+     * @param {number} eventId - 삭제할 이벤트 ID
+     * @returns {Promise<boolean>} 삭제 성공 여부
+     * @throws {Error} 데이터베이스 쿼리 실행 실패 시
      */
     static async deleteCalendarEvent(eventId) {
-        await pool.execute(`
-            DELETE FROM calendar_events
-            WHERE id = ?
-        `, [eventId]);
+        try {
+            // 입력 데이터 유효성 검사
+            if (!eventId) {
+                throw new Error('이벤트 ID는 필수 입력 항목입니다.');
+            }
+            
+            const [result] = await pool.execute(`
+                DELETE FROM calendar_events
+                WHERE id = ?
+            `, [eventId]);
+            
+            return result.affectedRows > 0;
+        } catch (error) {
+            console.error('캘린더 이벤트 삭제 오류:', error);
+            throw new Error('이벤트 삭제에 실패했습니다.');
+        }
     }
 
     /**

@@ -4,9 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>캘린더 - Gaon QandA</title>
+    <meta name="description" content="Gaon QandA 캘린더 - 일정 관리 및 이벤트 확인">
+    <meta name="keywords" content="캘린더, 일정관리, 이벤트, Gaon QandA">
+    
+    <!-- 외부 스타일시트 -->
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- 캘린더 전용 스타일 -->
     <style>
+        /* ===== 메인 레이아웃 ===== */
+        /* 캘린더와 사이드바를 포함하는 전체 컨테이너 */
         .calendar-container {
             max-width: 1400px;
             margin: 0 auto;
@@ -15,10 +23,12 @@
             gap: 30px;
         }
         
+        /* 캘린더 메인 영역 (4:3 비율의 4부분) */
         .calendar-main {
             flex: 4;
         }
         
+        /* 이벤트 표시 사이드바 (4:3 비율의 3부분) */
         .calendar-sidebar {
             flex: 3;
         }
