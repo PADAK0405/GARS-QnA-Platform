@@ -275,22 +275,6 @@ async function loadQuestions() {
         return;
     }
     
-    // 임시 테스트 HTML 추가
-    questionsContainer.innerHTML = `
-        <div style="background: red; color: white; padding: 20px; margin: 10px;">
-            <h2>임시 테스트 - 질문 ${questions.length}개 로드됨</h2>
-        </div>
-    `;
-    
-    // 3초 후 실제 리스트 표시
-    setTimeout(() => {
-        renderQuestionsList(questions);
-    }, 3000);
-}
-
-function renderQuestionsList(questions) {
-    const questionsContainer = document.getElementById('questions-container');
-    
     // 리스트 형태로 질문 표시
     console.log('리스트 형태로 질문 렌더링 시작...');
     
@@ -353,11 +337,12 @@ function renderQuestionsList(questions) {
         console.log('questions-list display:', window.getComputedStyle(questionsList).display);
         console.log('questions-list visibility:', window.getComputedStyle(questionsList).visibility);
     }
-        
+}
+
     console.log('질문 목록 렌더링 완료');
-        
-        // 질문 리스트 아이템 클릭 이벤트 추가
-        questionItems.forEach(item => {
+    
+    // 질문 리스트 아이템 클릭 이벤트 추가
+    questionItems.forEach(item => {
             item.addEventListener('click', (e) => {
                 // 버튼 클릭이 아닌 경우에만 상세보기로 이동
                 if (e.target.tagName !== 'BUTTON' && 
