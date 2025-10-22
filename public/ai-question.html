@@ -113,6 +113,18 @@
         let isSubmitting = false;
 
         document.addEventListener('DOMContentLoaded', async () => {
+            console.log('AI 질문 페이지 로딩 시작...');
+            
+            // 먼저 로그인 상태 확인
+            const authResponse = await fetch('/api/user', { credentials: 'include' });
+            console.log('인증 상태:', authResponse.status);
+            
+            if (authResponse.status === 401) {
+                console.log('로그인되지 않음 - 홈페이지로 이동');
+                window.location.href = '/';
+                return;
+            }
+            
             await loadUserInfo();
             setupEventListeners();
             updatePointsInfo();
@@ -128,14 +140,18 @@
             try {
                 const response = await fetch('/api/user');
                 if (!response.ok) {
-                    window.location.href = '/login';
-                    return;
+                    if (response.status === 401) {
+                        console.log('로그인이 필요합니다.');
+                        window.location.href = '/';
+                        return;
+                    }
+                    throw new Error(`HTTP ${response.status}`);
                 }
                 currentUser = await response.json();
-                console.log('사용자 정보:', currentUser);
+                console.log('사용자 정보 로드 성공');
             } catch (error) {
                 console.error('사용자 정보 로드 실패:', error);
-                window.location.href = '/login';
+                window.location.href = '/';
             }
         }
 
