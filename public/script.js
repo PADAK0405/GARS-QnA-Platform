@@ -268,39 +268,42 @@ async function loadQuestions() {
         }
         
         // 네이버 카페 스타일로 질문 표시
-        questionsContainer.innerHTML = `
-            <div class="cafe-style-list">
-                ${questions.map(q => `
-                    <div class="cafe-post" data-question-id="${q.id}">
-                        <div class="post-title">
-                            <a href="#" class="title-link">${escapeHtml(q.title)}</a>
-                            ${q.images && q.images.length > 0 ? `<span class="image-icon">📷</span>` : ''}
-                        </div>
-                        <div class="post-info">
-                            <span class="author">${escapeHtml(q.author.name)}</span>
-                            <span class="separator">|</span>
-                            <span class="date">${formatDate(q.created_at)}</span>
-                            <span class="separator">|</span>
-                            <span class="views">조회 ${Math.floor(Math.random() * 100) + 1}</span>
-                            <span class="separator">|</span>
-                            <span class="replies">댓글 ${q.answers.length}</span>
-                        </div>
+        let questionsHtml = '<div class="cafe-style-list">';
+        for (let i = 0; i < questions.length; i++) {
+            const q = questions[i];
+            questionsHtml += `
+                <div class="cafe-post" data-question-id="${q.id}">
+                    <div class="post-title">
+                        <a href="#" class="title-link">${escapeHtml(q.title)}</a>
+                        ${q.images && q.images.length > 0 ? `<span class="image-icon">📷</span>` : ''}
                     </div>
-                `).join('')}
-            </div>`;
+                    <div class="post-info">
+                        <span class="author">${escapeHtml(q.author ? q.author.name : '알 수 없음')}</span>
+                        <span class="separator">|</span>
+                        <span class="date">${formatDate(q.created_at)}</span>
+                        <span class="separator">|</span>
+                        <span class="views">조회 ${Math.floor(Math.random() * 100) + 1}</span>
+                        <span class="separator">|</span>
+                        <span class="replies">댓글 ${q.answers ? q.answers.length : 0}</span>
+                    </div>
+                </div>`;
+        }
+        questionsHtml += '</div>';
+        questionsContainer.innerHTML = questionsHtml;
         
         console.log('질문 목록 렌더링 완료');
         
         // 카페 스타일 포스트 클릭 이벤트 추가
         const cafePosts = questionsContainer.querySelectorAll('.cafe-post');
-        cafePosts.forEach(post => {
+        for (let i = 0; i < cafePosts.length; i++) {
+            const post = cafePosts[i];
             post.addEventListener('click', (e) => {
                 e.preventDefault();
                 const questionId = post.dataset.questionId;
                 console.log('질문 클릭됨:', questionId);
                 openQuestionDetail(questionId);
             });
-        });
+        }
         
     } catch (error) {
         console.error('질문 목록 로드 실패:', error);
@@ -332,16 +335,7 @@ async function loadQuestions() {
     }
 }
 
-function escapeHtml(text) {
-    const map = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#039;'
-    };
-    return text.replace(/[&<>"']/g, m => map[m]);
-}
+// escapeHtml 함수는 위에서 이미 정의됨 (중복 제거)
 
 function formatDate(dateString) {
     const date = new Date(dateString);
