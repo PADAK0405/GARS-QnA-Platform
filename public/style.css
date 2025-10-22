@@ -3034,7 +3034,7 @@ a:hover {
 
 /* Hero Section */
 .hero {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
     padding: 120px 40px 80px;
     text-align: center;
     border-bottom: 1px solid var(--border-light);
@@ -3046,35 +3046,53 @@ a:hover {
     justify-content: center;
 }
 
-/* 구름 배경 - 실제 구름 모양 */
+/* 구름 배경 - 실제 구름처럼 */
 .hero::before {
     content: '';
     position: absolute;
-    top: -30%;
-    left: -30%;
-    width: 160%;
-    height: 160%;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
     background: 
-        radial-gradient(ellipse at 25% 75%, rgba(255, 255, 255, 0.5) 0%, transparent 50%),
-        radial-gradient(ellipse at 75% 25%, rgba(255, 255, 255, 0.45) 0%, transparent 55%),
-        radial-gradient(ellipse at 50% 50%, rgba(255, 255, 255, 0.4) 0%, transparent 45%),
-        radial-gradient(ellipse at 10% 40%, rgba(255, 255, 255, 0.3) 0%, transparent 40%),
-        radial-gradient(ellipse at 90% 60%, rgba(255, 255, 255, 0.35) 0%, transparent 50%);
-    animation: cloudFloat 18s ease-in-out infinite;
+        radial-gradient(ellipse 400px 200px at 20% 80%, rgba(255, 255, 255, 0.9) 0%, transparent 70%),
+        radial-gradient(ellipse 300px 150px at 80% 20%, rgba(255, 255, 255, 0.8) 0%, transparent 70%),
+        radial-gradient(ellipse 250px 120px at 60% 60%, rgba(255, 255, 255, 0.7) 0%, transparent 70%),
+        radial-gradient(ellipse 200px 100px at 40% 30%, rgba(255, 255, 255, 0.6) 0%, transparent 70%),
+        radial-gradient(ellipse 350px 180px at 10% 50%, rgba(255, 255, 255, 0.5) 0%, transparent 70%);
+    animation: cloudFloat 20s ease-in-out infinite;
     z-index: 1;
-    border-radius: 50%;
+}
+
+/* 추가 구름 레이어 */
+.hero::after {
+    content: '';
+    position: absolute;
+    top: -30%;
+    right: -30%;
+    width: 150%;
+    height: 150%;
+    background: 
+        radial-gradient(ellipse 300px 150px at 30% 70%, rgba(255, 255, 255, 0.7) 0%, transparent 70%),
+        radial-gradient(ellipse 200px 100px at 70% 30%, rgba(255, 255, 255, 0.6) 0%, transparent 70%),
+        radial-gradient(ellipse 250px 125px at 50% 50%, rgba(255, 255, 255, 0.5) 0%, transparent 70%);
+    animation: cloudFloat 25s ease-in-out infinite reverse;
+    z-index: 1;
 }
 
 /* 구름 떠다니는 애니메이션 */
 @keyframes cloudFloat {
     0%, 100% {
-        transform: translateX(0) translateY(0);
+        transform: translateX(0) translateY(0) rotate(0deg);
     }
-    33% {
-        transform: translateX(-15px) translateY(-8px);
+    25% {
+        transform: translateX(-20px) translateY(-10px) rotate(1deg);
     }
-    66% {
-        transform: translateX(10px) translateY(-12px);
+    50% {
+        transform: translateX(15px) translateY(-15px) rotate(-1deg);
+    }
+    75% {
+        transform: translateX(-10px) translateY(5px) rotate(0.5deg);
     }
 }
 
