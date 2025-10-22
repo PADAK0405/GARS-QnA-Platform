@@ -1845,6 +1845,55 @@ app.get('/api/ranking/level', async (req, res) => {
     }
 });
 
+// 사용자 랭킹 정보 API
+app.get('/api/user/ranking', requireAuth, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        
+        // 사용자의 현재 점수와 레벨 정보 조회
+        const [userInfo] = await pool.execute(`
+            SELECT score, level, experience, points
+            FROM users 
+            WHERE id = ?
+        `, [userId]);
+        
+        if (userInfo.length === 0) {
+            return res.status(404).json({ error: '사용자 정보를 찾을 수 없습니다.' });
+        }
+        
+        const user = userInfo[0];
+        
+        // 점수 기준 랭킹에서의 순위 조회
+        const [scoreRankResult] = await pool.execute(`
+            SELECT COUNT(*) + 1 as rank
+            FROM users 
+            WHERE status = 'active' AND score > ?
+        `, [user.score]);
+        
+        // 레벨 기준 랭킹에서의 순위 조회
+        const [levelRankResult] = await pool.execute(`
+            SELECT COUNT(*) + 1 as rank
+            FROM users 
+            WHERE status = 'active' AND (level > ? OR (level = ? AND experience > ?))
+        `, [user.level, user.level, user.experience]);
+        
+        const userRanking = {
+            score: user.score,
+            level: user.level,
+            experience: user.experience,
+            points: user.points,
+            scoreRank: scoreRankResult[0].rank,
+            levelRank: levelRankResult[0].rank
+        };
+        
+        console.log(`사용자 랭킹 정보 조회 완료: ${req.user.displayName} (점수 ${user.score}, 레벨 ${user.level})`);
+        res.json(userRanking);
+    } catch (error) {
+        console.error('사용자 랭킹 정보 조회 실패:', error);
+        res.status(500).json({ error: '랭킹 정보를 조회할 수 없습니다.' });
+    }
+});
+
 // 404 에러 처리 (모든 라우트 다음에 위치)
 app.use((req, res) => {
     securityLogger.logSuspiciousActivity('404 Not Found', req);

@@ -39,6 +39,27 @@
                     <!-- 랭킹 목록이 여기에 표시됩니다 -->
                 </div>
             </div>
+            
+            <!-- 로그인한 사용자의 랭킹 정보 -->
+            <div class="user-ranking-info" id="user-ranking-info" style="display: none;">
+                <div class="user-ranking-card">
+                    <h3>내 랭킹</h3>
+                    <div class="user-ranking-details">
+                        <div class="ranking-stat">
+                            <span class="label">등수:</span>
+                            <span class="value" id="user-rank">-</span>
+                        </div>
+                        <div class="ranking-stat">
+                            <span class="label">점수:</span>
+                            <span class="value" id="user-score">-</span>
+                        </div>
+                        <div class="ranking-stat">
+                            <span class="label">레벨:</span>
+                            <span class="value" id="user-level">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -63,7 +84,10 @@
                 const rankings = await response.json();
                 console.log('랭킹 데이터:', rankings);
                 displayRankings(rankings, 'score');
-            } catch (error) {글
+                
+                // 사용자 랭킹 정보 로드
+                await loadUserRanking();
+            } catch (error) {
                 console.error('점수 랭킹 로드 실패:', error);
                 document.getElementById('ranking-list').innerHTML = 
                     `<div class="error-message">랭킹 정보를 불러올 수 없습니다: ${error.message}</div>`;
@@ -110,6 +134,30 @@
                 case 2: return '2nd';
                 case 3: return '3rd';
                 default: return null;
+            }
+        }
+
+        async function loadUserRanking() {
+            try {
+                const response = await fetch('/api/user/ranking');
+                if (response.ok) {
+                    const userRanking = await response.json();
+                    displayUserRanking(userRanking);
+                } else {
+                    console.log('사용자 랭킹 정보를 가져올 수 없습니다 (로그인 필요)');
+                }
+            } catch (error) {
+                console.log('사용자 랭킹 정보 로드 실패:', error);
+            }
+        }
+
+        function displayUserRanking(userRanking) {
+            const userRankingInfo = document.getElementById('user-ranking-info');
+            if (userRankingInfo && userRanking) {
+                document.getElementById('user-rank').textContent = userRanking.rank || '-';
+                document.getElementById('user-score').textContent = userRanking.score || 0;
+                document.getElementById('user-level').textContent = userRanking.level || 1;
+                userRankingInfo.style.display = 'block';
             }
         }
     </script>
