@@ -1799,6 +1799,12 @@ a:hover {
     color: #ffd700;
     font-weight: 700;
     text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+}
+
+.status-admin {
+    color: #8b5cf6;
+    font-weight: 700;
+    text-shadow: 0 0 8px rgba(139, 92, 246, 0.5);
     font-size: 1.1rem;
 }
 

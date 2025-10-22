@@ -182,19 +182,33 @@
             const questionInput = document.getElementById('ai-question-input');
             
             const hasText = questionInput.value.trim().length > 0;
+            
+            // 관리자 권한 체크 (admin, super_admin, moderator)
+            const isAdmin = currentUser && (
+                currentUser.role === 'admin' || 
+                currentUser.role === 'super_admin' || 
+                currentUser.role === 'moderator'
+            );
+            
             const hasPoints = currentUser && 
                              currentUser.levelInfo && 
                              currentUser.levelInfo.points && 
                              currentUser.levelInfo.points.canAskAI;
             
+            // 관리자는 포인트 제한 없이 AI 질문 가능
+            const canSubmit = hasText && (isAdmin || hasPoints);
+            
             console.log('버튼 상태 확인:', { 
                 hasText, 
                 hasPoints, 
+                isAdmin,
+                canSubmit,
                 hasUser: !!currentUser,
+                userRole: currentUser?.role,
                 userPoints: currentUser?.levelInfo?.points?.current || 0
             });
             
-            submitBtn.disabled = !hasText || !hasPoints || isSubmitting;
+            submitBtn.disabled = !canSubmit || isSubmitting;
         }
 
         function setupEventListeners() {
@@ -273,6 +287,13 @@
                 return;
             }
 
+            // 관리자 권한 체크
+            const isAdmin = currentUser && (
+                currentUser.role === 'admin' || 
+                currentUser.role === 'super_admin' || 
+                currentUser.role === 'moderator'
+            );
+
             const points = currentUser.levelInfo.points;
             const progressPercent = points.progress || 0;
             
@@ -288,13 +309,18 @@
                             <div class="progress-fill" style="width: ${progressPercent}%"></div>
                         </div>
                         <div class="points-status">
-                            ${points.canAskAI 
-                                ? '<span class="status-available">✅ AI 질문 가능 (50포인트 소모)</span>' 
-                                : `<span class="status-needed">❌ AI 질문까지 ${points.needed || 50} 포인트 더 필요</span>`
+                            ${isAdmin 
+                                ? '<span class="status-admin">👑 관리자 권한 - AI 질문 무제한 가능</span>'
+                                : (points.canAskAI 
+                                    ? '<span class="status-available">✅ AI 질문 가능 (50포인트 소모)</span>' 
+                                    : `<span class="status-needed">❌ AI 질문까지 ${points.needed || 50} 포인트 더 필요</span>`)
                             }
                         </div>
                         <div class="points-hint">
-                            💡 질문 작성(+3p) 또는 답변 작성(+10p)으로 포인트를 획득하세요!
+                            ${isAdmin 
+                                ? '👑 관리자님, AI 질문에 포인트 제한이 없습니다!'
+                                : '💡 질문 작성(+3p) 또는 답변 작성(+10p)으로 포인트를 획득하세요!'
+                            }
                         </div>
                     </div>
                 </div>
@@ -315,7 +341,15 @@
             const question = questionInput.value.trim();
             if (!question) return;
 
-            if (!currentUser.levelInfo.points.canAskAI) {
+            // 관리자 권한 체크
+            const isAdmin = currentUser && (
+                currentUser.role === 'admin' || 
+                currentUser.role === 'super_admin' || 
+                currentUser.role === 'moderator'
+            );
+
+            // 관리자가 아니고 포인트가 부족한 경우에만 체크
+            if (!isAdmin && !currentUser.levelInfo.points.canAskAI) {
                 showToast('포인트가 부족합니다. 질문이나 답변을 작성해서 포인트를 획득하세요!', 'warning');
                 return;
             }
