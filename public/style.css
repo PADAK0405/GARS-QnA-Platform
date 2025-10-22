@@ -474,6 +474,61 @@ button:disabled {
     min-width: auto;
 }
 
+/* 강제 버튼 표시 스타일 */
+.question-actions, .answer-actions {
+    display: flex !important;
+    gap: 8px !important;
+    flex-wrap: wrap !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.question-actions .action-btn, .answer-actions .action-btn {
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    background: #007bff !important;
+    color: white !important;
+    border: none !important;
+    padding: 6px 12px !important;
+    border-radius: 4px !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    text-decoration: none !important;
+    transition: all 0.2s ease !important;
+}
+
+.question-actions .action-btn:hover, .answer-actions .action-btn:hover {
+    background: #0056b3 !important;
+    transform: translateY(-1px) !important;
+}
+
+.question-actions .action-btn.success, .answer-actions .action-btn.success {
+    background: #28a745 !important;
+}
+
+.question-actions .action-btn.success:hover, .answer-actions .action-btn.success:hover {
+    background: #218838 !important;
+}
+
+.question-actions .action-btn.warning, .answer-actions .action-btn.warning {
+    background: #ffc107 !important;
+    color: #212529 !important;
+}
+
+.question-actions .action-btn.warning:hover, .answer-actions .action-btn.warning:hover {
+    background: #e0a800 !important;
+}
+
+.question-actions .action-btn.danger, .answer-actions .action-btn.danger {
+    background: #dc3545 !important;
+}
+
+.question-actions .action-btn.danger:hover, .answer-actions .action-btn.danger:hover {
+    background: #c82333 !important;
+}
+
 /* Answer Styles */
 .answers {
     margin-top: 24px;
@@ -3126,6 +3181,16 @@ a:hover {
     .question-actions .action-btn, .answer-actions .action-btn {
         font-size: 0.7rem;
         padding: 6px 10px;
+        display: inline-block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        background: #007bff !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 4px !important;
+        font-weight: 500 !important;
+        cursor: pointer !important;
+        margin: 2px !important;
     }
     
     .search-box input {
