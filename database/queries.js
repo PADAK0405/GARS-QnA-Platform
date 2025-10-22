@@ -77,39 +77,63 @@ class Database {
      * 랭킹 조회 (상위 10명)
      */
     static async getTopRankings(limit = 10) {
-        // 먼저 모든 사용자 데이터 확인
-        const [allUsers] = await pool.query(`SELECT id, display_name, email, score FROM users LIMIT 5`);
-        console.log('모든 사용자 샘플:', allUsers);
-        
-        const [rankings] = await pool.query(
-            `SELECT id, display_name, email, score, level, experience, points FROM users WHERE status = 'active' ORDER BY score DESC LIMIT ${limit}`
-        );
-        console.log('랭킹 쿼리 결과:', rankings); // 디버깅용 로그
-        
-        // 데이터 정제
-        const cleanedRankings = rankings.map(user => {
-            const cleanedUser = {
-                id: user.id,
-                score: user.score || 0,
-                level: user.level || 1,
-                experience: user.experience || 0,
-                points: user.points || 0
-            };
+        try {
+            // 전체 사용자 수 확인
+            const [totalCount] = await pool.query(`SELECT COUNT(*) as total FROM users`);
+            console.log('전체 사용자 수:', totalCount[0].total);
             
-            // display_name 처리
-            if (user.display_name && user.display_name !== 'undefined' && user.display_name !== 'null' && user.display_name.trim() !== '') {
-                cleanedUser.display_name = user.display_name.trim();
-            } else if (user.email && user.email !== 'undefined' && user.email !== 'null') {
-                cleanedUser.display_name = user.email.split('@')[0];
-            } else {
-                cleanedUser.display_name = `사용자${user.id}`;
-            }
+            // 모든 사용자 데이터 확인 (상위 10명)
+            const [allUsers] = await pool.query(`SELECT id, display_name, email, score, status FROM users ORDER BY score DESC LIMIT 10`);
+            console.log('상위 10명 사용자 데이터:', allUsers);
             
-            return cleanedUser;
-        });
-        
-        console.log('정제된 랭킹 데이터:', cleanedRankings);
-        return cleanedRankings;
+            // active 상태 사용자만 필터링
+            const [rankings] = await pool.query(
+                `SELECT id, display_name, email, score, level, experience, points FROM users WHERE status = 'active' ORDER BY score DESC LIMIT ${limit}`
+            );
+            console.log('랭킹 쿼리 결과 (active만):', rankings);
+            
+            // 데이터 정제
+            const cleanedRankings = rankings.map(user => {
+                console.log('처리 중인 사용자:', user);
+                
+                const cleanedUser = {
+                    id: user.id,
+                    score: user.score || 0,
+                    level: user.level || 1,
+                    experience: user.experience || 0,
+                    points: user.points || 0
+                };
+                
+                // display_name 처리 - 더 강력한 검증
+                let displayName = `사용자${user.id}`;
+                
+                if (user.display_name && 
+                    user.display_name !== 'undefined' && 
+                    user.display_name !== 'null' && 
+                    user.display_name !== '' &&
+                    user.display_name.trim() !== '') {
+                    displayName = user.display_name.trim();
+                    console.log('display_name 사용:', displayName);
+                } else if (user.email && 
+                           user.email !== 'undefined' && 
+                           user.email !== 'null' && 
+                           user.email !== '') {
+                    displayName = user.email.split('@')[0];
+                    console.log('email에서 추출:', displayName);
+                } else {
+                    console.log('fallback 사용:', displayName);
+                }
+                
+                cleanedUser.display_name = displayName;
+                return cleanedUser;
+            });
+            
+            console.log('최종 정제된 랭킹 데이터:', cleanedRankings);
+            return cleanedRankings;
+        } catch (error) {
+            console.error('랭킹 조회 오류:', error);
+            return [];
+        }
     }
 
     // ========== 질문 관련 쿼리 ==========
