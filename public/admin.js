@@ -465,6 +465,9 @@ async function loadQuestions(status = 'all') {
                                 `<button class="action-btn warning" onclick="toggleQuestionStatus(${question.id}, 'hidden')">숨기기</button>`
                             }
                             <button class="action-btn danger" onclick="deleteQuestion(${question.id})">삭제</button>
+                            ${question.author?.id && question.author.role !== 'admin' && question.author.role !== 'super_admin' ? 
+                                `<button class="action-btn danger" onclick="suspendUserFromQuestion('${question.author.id}', '${escapeHtml(question.author.name)}')">사용자 정지</button>` : ''
+                            }
                         </div>
                     </div>
                 `).join('')}
@@ -571,6 +574,9 @@ async function loadAnswers(status = 'all') {
                                 `<button class="action-btn warning" onclick="toggleAnswerStatus(${answer.id}, 'hidden')">숨기기</button>`
                             }
                             <button class="action-btn danger" onclick="deleteAnswer(${answer.id})">삭제</button>
+                            ${answer.author?.id && answer.author.role !== 'admin' && answer.author.role !== 'super_admin' ? 
+                                `<button class="action-btn danger" onclick="suspendUserFromAnswer('${answer.author.id}', '${escapeHtml(answer.author.name)}')">사용자 정지</button>` : ''
+                            }
                         </div>
                     </div>
                 `).join('')}
@@ -1053,6 +1059,86 @@ async function punishUser(reportId, targetId, targetType) {
         }
     } catch (error) {
         console.error('사용자 처벌 실패:', error);
+        showToast(error.message, 'error');
+    }
+}
+
+// 질문에서 사용자 정지
+async function suspendUserFromQuestion(userId, userName) {
+    if (!confirm(`'${userName}' 사용자를 정지시키겠습니까?`)) {
+        return;
+    }
+
+    try {
+        const reason = prompt('정지 사유를 입력하세요:', '부적절한 질문으로 인한 정지');
+        if (!reason) return;
+
+        const duration = prompt('정지 기간을 입력하세요 (일 단위, 0은 무기한):', '7');
+        if (duration === null) return;
+
+        const response = await fetch(`/api/admin/users/${userId}/suspend`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': window.csrfToken || ''
+            },
+            body: JSON.stringify({
+                status: 'suspended',
+                reason: reason,
+                duration: parseInt(duration) || 0
+            }),
+            credentials: 'include'
+        });
+
+        if (response.ok) {
+            showToast(`'${userName}' 사용자가 정지되었습니다.`, 'success');
+            // 질문 목록 새로고침
+            loadQuestions();
+        } else {
+            throw new Error('사용자 정지 처리에 실패했습니다.');
+        }
+    } catch (error) {
+        console.error('사용자 정지 실패:', error);
+        showToast(error.message, 'error');
+    }
+}
+
+// 답변에서 사용자 정지
+async function suspendUserFromAnswer(userId, userName) {
+    if (!confirm(`'${userName}' 사용자를 정지시키겠습니까?`)) {
+        return;
+    }
+
+    try {
+        const reason = prompt('정지 사유를 입력하세요:', '부적절한 답변으로 인한 정지');
+        if (!reason) return;
+
+        const duration = prompt('정지 기간을 입력하세요 (일 단위, 0은 무기한):', '7');
+        if (duration === null) return;
+
+        const response = await fetch(`/api/admin/users/${userId}/suspend`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': window.csrfToken || ''
+            },
+            body: JSON.stringify({
+                status: 'suspended',
+                reason: reason,
+                duration: parseInt(duration) || 0
+            }),
+            credentials: 'include'
+        });
+
+        if (response.ok) {
+            showToast(`'${userName}' 사용자가 정지되었습니다.`, 'success');
+            // 답변 목록 새로고침
+            loadAnswers();
+        } else {
+            throw new Error('사용자 정지 처리에 실패했습니다.');
+        }
+    } catch (error) {
+        console.error('사용자 정지 실패:', error);
         showToast(error.message, 'error');
     }
 }

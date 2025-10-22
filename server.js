@@ -1084,7 +1084,8 @@ app.delete('/api/questions/:id', async (req, res) => {
             return res.status(404).json({ error: '질문을 찾을 수 없습니다.' });
         }
         
-        if (question.user_id !== req.user.id) {
+        // 관리자가 아니고 본인 질문이 아닌 경우 삭제 불가
+        if (question.user_id !== req.user.id && !['admin', 'super_admin', 'moderator'].includes(req.user.role)) {
             return res.status(403).json({ error: '자신의 질문만 삭제할 수 있습니다.' });
         }
         
@@ -1156,7 +1157,8 @@ app.delete('/api/answers/:id', async (req, res) => {
             return res.status(404).json({ error: '답변을 찾을 수 없습니다.' });
         }
         
-        if (answer.user_id !== req.user.id) {
+        // 관리자가 아니고 본인 답변이 아닌 경우 삭제 불가
+        if (answer.user_id !== req.user.id && !['admin', 'super_admin', 'moderator'].includes(req.user.role)) {
             return res.status(403).json({ error: '자신의 답변만 삭제할 수 있습니다.' });
         }
         
