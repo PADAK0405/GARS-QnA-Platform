@@ -3034,13 +3034,71 @@ a:hover {
 
 /* Hero Section */
 .hero {
-    background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     padding: 120px 40px 80px;
     text-align: center;
     border-bottom: 1px solid var(--border-light);
+    position: relative;
+    overflow: hidden;
+    min-height: 70vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
+/* 구름 배경 */
+.hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: 
+        radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.25) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(255, 255, 255, 0.2) 0%, transparent 50%),
+        radial-gradient(circle at 60% 70%, rgba(255, 255, 255, 0.15) 0%, transparent 50%);
+    animation: cloudFloat 20s ease-in-out infinite;
+    z-index: 1;
+}
+
+/* 구름 떠다니는 애니메이션 */
+@keyframes cloudFloat {
+    0%, 100% {
+        transform: translateX(0) translateY(0) rotate(0deg);
+    }
+    25% {
+        transform: translateX(-10px) translateY(-5px) rotate(1deg);
+    }
+    50% {
+        transform: translateX(5px) translateY(-10px) rotate(-1deg);
+    }
+    75% {
+        transform: translateX(-5px) translateY(5px) rotate(0.5deg);
+    }
+}
+
+/* 히어로 콘텐츠 로딩 애니메이션 - 아래로 내려갔다가 원위치로 */
+@keyframes heroSlideUp {
+    0% {
+        opacity: 0;
+        transform: translateY(60px);
+    }
+    60% {
+        opacity: 0.8;
+        transform: translateY(-10px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 히어로 콘텐츠가 구름 위에 표시되도록 */
 .hero-content {
+    position: relative;
+    z-index: 2;
     max-width: 720px;
     margin: 0 auto;
 }
@@ -3050,16 +3108,20 @@ a:hover {
     font-weight: 700;
     margin-bottom: 20px;
     line-height: 1.15;
-    color: var(--text-color);
+    color: white;
     letter-spacing: -0.04em;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    animation: heroSlideUp 1.2s ease-out;
 }
 
 .hero-subtitle {
     font-size: 1.15rem;
     margin-bottom: 40px;
-    color: var(--text-muted);
+    color: rgba(255, 255, 255, 0.9);
     font-weight: 400;
     line-height: 1.6;
+    text-shadow: 0 1px 5px rgba(0, 0, 0, 0.2);
+    animation: heroSlideUp 1.2s ease-out 0.2s both;
 }
 
 .hero-buttons {
@@ -3067,6 +3129,7 @@ a:hover {
     gap: 20px;
     justify-content: center;
     flex-wrap: wrap;
+    animation: heroSlideUp 1.2s ease-out 0.4s both;
 }
 
 .hero-btn {
@@ -3080,24 +3143,30 @@ a:hover {
 }
 
 .hero-btn.primary {
-    background: var(--primary-color);
-    color: white;
+    background: rgba(255, 255, 255, 0.9);
+    color: #667eea;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
 .hero-btn.primary:hover {
-    background: var(--primary-dark);
-    box-shadow: var(--shadow-md);
+    background: rgba(255, 255, 255, 1);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
 }
 
 .hero-btn.secondary {
-    background: white;
-    color: var(--text-color);
-    border: 1px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(10px);
 }
 
 .hero-btn.secondary:hover {
-    border-color: var(--primary-color);
-    color: var(--primary-color);
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
 /* Features Section */
@@ -3227,6 +3296,7 @@ a:hover {
 @media (max-width: 768px) {
     .hero {
         padding: 60px 20px 50px;
+        min-height: 60vh;
     }
     
     .hero-title {
