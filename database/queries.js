@@ -915,6 +915,7 @@ class Database {
                 q.id,
                 q.title,
                 q.content,
+                q.views,
                 q.created_at,
                 q.status,
                 u.id as author_id,
@@ -938,6 +939,7 @@ class Database {
                     id: question.id,
                     title: question.title,
                     content: question.content,
+                    views: question.views || 0,
                     author: {
                         id: question.author_id,
                         name: question.author_name,
@@ -952,6 +954,22 @@ class Database {
         );
 
         return questionsWithDetails;
+    }
+
+    /**
+     * 질문 조회수 증가
+     */
+    static async incrementQuestionViews(questionId) {
+        try {
+            await pool.execute(
+                'UPDATE questions SET views = views + 1 WHERE id = ?',
+                [questionId]
+            );
+            return true;
+        } catch (error) {
+            console.error('조회수 증가 오류:', error);
+            return false;
+        }
     }
 
     /**

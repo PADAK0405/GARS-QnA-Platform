@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS questions (
     user_id VARCHAR(255) NOT NULL,
     title VARCHAR(500) NOT NULL,
     content TEXT NOT NULL,
+    views INT DEFAULT 0,
     status ENUM('active', 'hidden', 'deleted') DEFAULT 'active',
     hidden_by VARCHAR(255) NULL,
     hidden_reason TEXT NULL,
@@ -47,6 +48,7 @@ CREATE TABLE IF NOT EXISTS questions (
     INDEX idx_user_id (user_id),
     INDEX idx_created_at (created_at DESC),
     INDEX idx_status (status),
+    INDEX idx_views (views DESC),
     FULLTEXT INDEX idx_title_content (title, content)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

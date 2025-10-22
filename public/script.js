@@ -306,7 +306,7 @@ async function loadQuestions() {
                         <span class="separator">|</span>
                         <span class="date">${formatDate(q.created_at)}</span>
                         <span class="separator">|</span>
-                        <span class="views">조회 ${Math.floor(Math.random() * 100) + 1}</span>
+                        <span class="views">조회 ${q.views || 0}</span>
                         <span class="separator">|</span>
                         <span class="replies">댓글 ${q.answers ? q.answers.length : 0}</span>
                     </div>

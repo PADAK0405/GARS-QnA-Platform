@@ -82,6 +82,16 @@ async function updateDatabaseSchema() {
             query: 'ALTER TABLE users ADD INDEX idx_experience (experience DESC)',
             description: 'experience 인덱스',
             errorCodes: ['ER_DUP_KEYNAME']
+        },
+        { 
+            query: 'ALTER TABLE questions ADD COLUMN views INT DEFAULT 0',
+            description: 'questions views 컬럼',
+            errorCodes: ['ER_DUP_FIELDNAME']
+        },
+        { 
+            query: 'ALTER TABLE questions ADD INDEX idx_views (views DESC)',
+            description: 'questions views 인덱스',
+            errorCodes: ['ER_DUP_KEYNAME']
         }
     ];
     
@@ -1063,6 +1073,11 @@ app.get('/api/questions/:id', async (req, res) => {
         if (!question) {
             return res.status(404).json({ error: '질문을 찾을 수 없습니다.' });
         }
+        
+        // 조회수 증가 (비동기로 처리하여 응답 속도 향상)
+        Database.incrementQuestionViews(questionId).catch(err => {
+            console.error('조회수 증가 실패:', err);
+        });
         
         res.json(question);
     } catch (error) {
