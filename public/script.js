@@ -991,7 +991,17 @@ async function loadRankings() {
     
     rankingList.innerHTML = rankings.map((user, i) => {
         console.log(`사용자 ${i + 1}:`, user); // 각 사용자 데이터 로그
-        const displayName = user.display_name || user.name || '익명 사용자';
+        
+        // 더 안전한 이름 처리
+        let displayName = '익명 사용자';
+        if (user.display_name && user.display_name !== 'undefined' && user.display_name !== 'null') {
+            displayName = user.display_name;
+        } else if (user.name && user.name !== 'undefined' && user.name !== 'null') {
+            displayName = user.name;
+        } else if (user.email && user.email !== 'undefined' && user.email !== 'null') {
+            displayName = user.email.split('@')[0]; // 이메일에서 @ 앞부분만 사용
+        }
+        
         return `<li>
             <div>
                 <span style="color: var(--text-muted); font-weight: 600;">${i + 1}위</span>

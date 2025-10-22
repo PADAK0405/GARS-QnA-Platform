@@ -78,7 +78,7 @@ class Database {
      */
     static async getTopRankings(limit = 10) {
         const [rankings] = await pool.query(
-            `SELECT id, display_name, score, level, experience, points FROM users WHERE status = 'active' ORDER BY score DESC LIMIT ${limit}`
+            `SELECT id, display_name, email, score, level, experience, points FROM users WHERE status = 'active' ORDER BY score DESC LIMIT ${limit}`
         );
         console.log('랭킹 쿼리 결과:', rankings); // 디버깅용 로그
         return rankings;
