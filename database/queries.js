@@ -82,19 +82,13 @@ class Database {
             const [totalCount] = await pool.query(`SELECT COUNT(*) as total FROM users`);
             console.log('전체 사용자 수:', totalCount[0].total);
             
-            // 모든 사용자 데이터 확인 (상위 10명)
-            const [allUsers] = await pool.query(`SELECT id, display_name, email, score, status FROM users ORDER BY score DESC LIMIT 10`);
-            console.log('상위 10명 사용자 데이터:', allUsers);
-            
             // active 상태 사용자만 필터링
             const [rankings] = await pool.query(
                 `SELECT id, display_name, email, score, level, experience, points FROM users WHERE status = 'active' ORDER BY score DESC LIMIT ${limit}`
             );
-            console.log('랭킹 쿼리 결과 (active만):', rankings);
             
             // 데이터 정제
             const cleanedRankings = rankings.map(user => {
-                console.log('처리 중인 사용자:', user);
                 
                 const cleanedUser = {
                     id: user.id,
@@ -113,22 +107,17 @@ class Database {
                     user.display_name !== '' &&
                     user.display_name.trim() !== '') {
                     displayName = user.display_name.trim();
-                    console.log('display_name 사용:', displayName);
                 } else if (user.email && 
                            user.email !== 'undefined' && 
                            user.email !== 'null' && 
                            user.email !== '') {
                     displayName = user.email.split('@')[0];
-                    console.log('email에서 추출:', displayName);
-                } else {
-                    console.log('fallback 사용:', displayName);
                 }
                 
                 cleanedUser.display_name = displayName;
                 return cleanedUser;
             });
             
-            console.log('최종 정제된 랭킹 데이터:', cleanedRankings);
             return cleanedRankings;
         } catch (error) {
             console.error('랭킹 조회 오류:', error);

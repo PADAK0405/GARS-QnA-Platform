@@ -984,7 +984,6 @@ async function loadRankings() {
     const response = await fetch('/api/rankings');
     const rankings = await response.json();
     
-    console.log('랭킹 데이터:', rankings); // 디버깅용 로그 추가
     
     if (rankings.length === 0) {
         rankingList.innerHTML = `
@@ -996,7 +995,6 @@ async function loadRankings() {
     }
     
     rankingList.innerHTML = rankings.map((user, i) => {
-        console.log(`사용자 ${i + 1}:`, user); // 각 사용자 데이터 로그
         
         // 백엔드에서 이미 정제된 데이터를 사용
         const displayName = user.display_name || `사용자${user.id}`;

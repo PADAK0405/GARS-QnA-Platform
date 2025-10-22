@@ -408,6 +408,24 @@ const uploadLimiter = rateLimit({
     }
 });
 
+// API 요청 제한
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15분 윈도우
+    max: 100, // 최대 100개 요청
+    message: {
+        error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.'
+    }
+});
+
+// 로그인 시도 제한
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15분 윈도우
+    max: 5, // 최대 5번 시도
+    message: {
+        error: '로그인 시도가 너무 많습니다. 잠시 후 다시 시도해주세요.'
+    }
+});
+
 // ========== Google OAuth 설정 ==========
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
@@ -687,7 +705,7 @@ async (accessToken, refreshToken, profile, done) => {
     }
 }));
 
-app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+app.get('/auth/google', loginLimiter, passport.authenticate('google', { scope: ['profile', 'email'] }));
 app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/' }), (req, res) => res.redirect('/'));
 app.get('/auth/logout', (req, res, next) => {
     req.logout(err => {
@@ -703,25 +721,16 @@ app.get('/api/csrf-token', (req, res) => {
 });
 
 app.get('/api/user', async (req, res) => {
-    console.log('사용자 정보 조회 요청, req.user:', req.user);
     if (req.user) {
         try {
             // 데이터베이스에서 최신 사용자 정보 조회
             const user = await Database.findUserById(req.user.id);
-            console.log('데이터베이스에서 조회한 사용자:', user);
             
             if (!user) {
                 console.log('사용자를 찾을 수 없음');
                 return res.status(404).json({ message: 'User not found' });
             }
             
-            console.log('데이터베이스에서 조회한 사용자 정보:', user);
-            console.log('정지 관련 정보:', {
-                status: user.status,
-                suspended_until: user.suspended_until,
-                suspended_at: user.suspended_at,
-                suspension_reason: user.suspension_reason
-            });
             
             // 레벨 정보 추가
             const levelInfo = await Database.getUserLevelInfo(req.user.id);
@@ -742,7 +751,6 @@ app.get('/api/user', async (req, res) => {
                 suspensionReason: user.suspension_reason
             };
             
-            console.log('클라이언트로 전송할 사용자 정보:', userResponse);
             res.json(userResponse);
         } catch (error) {
             console.error('사용자 정보 조회 오류:', error);
@@ -838,7 +846,7 @@ app.get('/api/rankings', async (req, res) => {
     }
 });
 
-app.post('/api/upload', upload.single('image'), (req, res) => {
+app.post('/api/upload', uploadLimiter, upload.single('image'), (req, res) => {
     if (!req.user) return res.status(401).send('로그인이 필요합니다.');
     if (!req.file) return res.status(400).send('이미지가 업로드되지 않았습니다.');
     res.json({ imageUrl: `/uploads/${req.file.filename}` });
@@ -850,7 +858,6 @@ const CACHE_DURATION = 5000; // 5초
 
 app.post('/api/questions', csrfProtection, validateQuestion, handleValidationErrors, async (req, res) => {
     console.log('질문 등록 요청:', req.body);
-    console.log('사용자 정보:', req.user);
     
     if (!req.user) {
         console.log('로그인되지 않은 사용자');
@@ -870,8 +877,25 @@ app.post('/api/questions', csrfProtection, validateQuestion, handleValidationErr
         return res.status(400).json({ error: '제목과 내용은 필수입니다.' });
     }
     
+    // 입력 길이 제한 및 특수 문자 검증
+    if (title.length > 500) {
+        return res.status(400).json({ error: '제목은 500자 이내로 작성해주세요.' });
+    }
+    
+    if (content.length > 10000) {
+        return res.status(400).json({ error: '내용은 10,000자 이내로 작성해주세요.' });
+    }
+    
+    // HTML 태그 제거 및 XSS 방지
+    const sanitizedTitle = title.replace(/<[^>]*>/g, '').trim();
+    const sanitizedContent = content.replace(/<[^>]*>/g, '').trim();
+    
+    if (!sanitizedTitle || !sanitizedContent) {
+        return res.status(400).json({ error: '제목과 내용에 유효한 텍스트를 입력해주세요.' });
+    }
+    
     // 중복 요청 체크 (사용자 ID + 제목 + 내용 해시)
-    const requestKey = `${req.user.id}-${title}-${content}`;
+    const requestKey = `${req.user.id}-${sanitizedTitle}-${sanitizedContent}`;
     const now = Date.now();
     
     if (requestCache.has(requestKey)) {
@@ -899,8 +923,8 @@ app.post('/api/questions', csrfProtection, validateQuestion, handleValidationErr
         console.log('데이터베이스에 질문 저장 시작...');
         const questionId = await Database.createQuestion(
             req.user.id,
-            title,
-            content,
+            sanitizedTitle,
+            sanitizedContent,
             images || []
         );
         console.log('질문 저장 완료, ID:', questionId);
@@ -971,8 +995,24 @@ app.post('/api/questions/:id/answers', csrfProtection, validateAnswer, handleVal
     const questionId = parseInt(req.params.id);
     const { content, images } = req.body;
     
+    // 입력 검증
+    if (!content || content.trim().length === 0) {
+        return res.status(400).json({ error: '답변 내용은 필수입니다.' });
+    }
+    
+    if (content.length > 10000) {
+        return res.status(400).json({ error: '답변은 10,000자 이내로 작성해주세요.' });
+    }
+    
+    // HTML 태그 제거 및 XSS 방지
+    const sanitizedContent = content.replace(/<[^>]*>/g, '').trim();
+    
+    if (!sanitizedContent) {
+        return res.status(400).json({ error: '답변에 유효한 텍스트를 입력해주세요.' });
+    }
+    
     // 중복 요청 체크 (사용자 ID + 질문 ID + 내용 해시)
-    const requestKey = `answer-${req.user.id}-${questionId}-${content}`;
+    const requestKey = `answer-${req.user.id}-${questionId}-${sanitizedContent}`;
     const now = Date.now();
     
     if (requestCache.has(requestKey)) {
@@ -986,10 +1026,6 @@ app.post('/api/questions/:id/answers', csrfProtection, validateAnswer, handleVal
     // 요청 캐시에 저장
     requestCache.set(requestKey, now);
     
-    if (!content) {
-        return res.status(400).json({ error: '답변 내용은 필수입니다.' });
-    }
-    
     try {
         // 질문 존재 확인
         const question = await Database.getQuestionById(questionId);
@@ -1000,7 +1036,7 @@ app.post('/api/questions/:id/answers', csrfProtection, validateAnswer, handleVal
         const answerId = await Database.createAnswer(
             questionId,
             req.user.id,
-            content,
+            sanitizedContent,
             images || []
         );
         
@@ -1551,7 +1587,6 @@ app.post('/api/ai-chat', async (req, res) => {
             return res.status(503).json({ error: 'AI 서비스가 현재 사용할 수 없습니다. GEMINI_API_KEY를 설정해주세요.' });
         }
         
-        console.log(`AI 채팅 요청 - 사용자: ${req.user.id}, 메시지: ${message.substring(0, 50)}...`);
         
         // Gemini AI로 채팅 응답 생성
         const aiResponse = await geminiAI.analyzeTextQuestion(message, []);
@@ -1596,7 +1631,6 @@ app.post('/api/ai-question', upload.array('images', 3), async (req, res) => {
             });
         }
         
-        console.log(`AI 질문 요청 - 사용자: ${req.user.id}, 포인트: ${userPoints.current}, 질문: ${question.substring(0, 50)}..., 이미지: ${images.length}개`);
         
         // 포인트 차감
         const PointsSystem = require('./utils/points-system');
@@ -1757,7 +1791,6 @@ app.delete('/api/calendar/events/:id', async (req, res) => {
 app.get('/api/reports', async (req, res) => {
     try {
         console.log('신고 목록 조회 요청:', req.query);
-        console.log('사용자 정보:', req.user);
         
         if (!req.user) {
             console.log('사용자가 로그인되지 않음');
@@ -1765,7 +1798,6 @@ app.get('/api/reports', async (req, res) => {
         }
 
         const user = await Database.findUserById(req.user.id);
-        console.log('데이터베이스에서 조회한 사용자:', user);
 
         if (!user || !['admin', 'moderator', 'super_admin'].includes(user.role)) {
             console.log('관리자 권한 없음:', user?.role);
