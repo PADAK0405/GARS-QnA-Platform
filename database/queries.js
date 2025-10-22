@@ -868,10 +868,22 @@ class Database {
             LIMIT ${limit} OFFSET ${offset}
         `);
         
-        return logs.map(log => ({
-            ...log,
-            details: log.details ? JSON.parse(log.details) : null
-        }));
+        return logs.map(log => {
+            let parsedDetails = null;
+            if (log.details != null) {
+                try {
+                    // details가 문자열 JSON이면 파싱, 이미 객체면 그대로 사용
+                    parsedDetails = typeof log.details === 'string' ? JSON.parse(log.details) : log.details;
+                } catch (e) {
+                    // 파싱 실패 시 원본 값을 문자열로 안전하게 보존
+                    parsedDetails = String(log.details);
+                }
+            }
+            return {
+                ...log,
+                details: parsedDetails
+            };
+        });
     }
 
     /**
