@@ -910,22 +910,23 @@ class Database {
      * 
      */
     static async getActiveQuestions() {
-        const [questions] = await pool.execute(`
-            SELECT 
-                q.id,
-                q.title,
-                q.content,
-                q.views,
-                q.created_at,
-                q.status,
-                u.id as author_id,
-                u.display_name as author_name,
-                u.level as author_level
-            FROM questions q
-            JOIN users u ON q.user_id = u.id
-            WHERE q.status = 'active' AND u.status = 'active'
-            ORDER BY q.created_at DESC
-        `);
+        try {
+            const [questions] = await pool.execute(`
+                SELECT 
+                    q.id,
+                    q.title,
+                    q.content,
+                    COALESCE(q.views, 0) as views,
+                    q.created_at,
+                    q.status,
+                    u.id as author_id,
+                    u.display_name as author_name,
+                    u.level as author_level
+                FROM questions q
+                JOIN users u ON q.user_id = u.id
+                WHERE q.status = 'active' AND u.status = 'active'
+                ORDER BY q.created_at DESC
+            `);
 
         // 각 질문에 대한 답변과 이미지 조회 (병렬 처리)
         const questionsWithDetails = await Promise.all(
@@ -954,6 +955,65 @@ class Database {
         );
 
         return questionsWithDetails;
+        } catch (error) {
+            console.error('질문 목록 조회 오류:', error);
+            // views 컬럼이 없는 경우를 대비한 fallback
+            if (error.code === 'ER_BAD_FIELD_ERROR' && error.message.includes('views')) {
+                console.log('views 컬럼이 없어서 fallback 쿼리 실행');
+                return await this.getActiveQuestionsFallback();
+            }
+            throw error;
+        }
+    }
+
+    /**
+     * views 컬럼이 없을 때 사용하는 fallback 함수
+     */
+    static async getActiveQuestionsFallback() {
+        const [questions] = await pool.execute(`
+            SELECT 
+                q.id,
+                q.title,
+                q.content,
+                0 as views,
+                q.created_at,
+                q.status,
+                u.id as author_id,
+                u.display_name as author_name,
+                u.level as author_level
+            FROM questions q
+            JOIN users u ON q.user_id = u.id
+            WHERE q.status = 'active' AND u.status = 'active'
+            ORDER BY q.created_at DESC
+        `);
+
+        // 각 질문에 대한 답변과 이미지 조회 (병렬 처리)
+        const questionsWithDetails = await Promise.all(
+            questions.map(async (question) => {
+                const [answers, questionImages] = await Promise.all([
+                    this.getActiveAnswersByQuestionId(question.id),
+                    this.getImagesByEntity('question', question.id)
+                ]);
+
+                return {
+                    id: question.id,
+                    title: question.title,
+                    content: question.content,
+                    views: 0,
+                    author: {
+                        id: question.author_id,
+                        name: question.author_name,
+                        level: question.author_level
+                    },
+                    images: questionImages,
+                    answers: answers,
+                    created_at: question.created_at,
+                    status: question.status
+                };
+            })
+        );
+
+        return questionsWithDetails;
     }
 
     /**
@@ -968,6 +1028,11 @@ class Database {
             return true;
         } catch (error) {
             console.error('조회수 증가 오류:', error);
+            // views 컬럼이 없는 경우 무시
+            if (error.code === 'ER_BAD_FIELD_ERROR' && error.message.includes('views')) {
+                console.log('views 컬럼이 없어서 조회수 증가를 건너뜁니다');
+                return true; // 오류가 아니므로 true 반환
+            }
             return false;
         }
     }
