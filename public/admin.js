@@ -1065,14 +1065,7 @@ async function punishUser(reportId, targetId, targetType) {
 
 // 질문에서 사용자 정지
 async function suspendUserFromQuestion(userId, userName) {
-    if (!confirm(`'${userName}' 사용자를 정지시키겠습니까?`)) {
-        return;
-    }
-
     try {
-        const reason = prompt('정지 사유를 입력하세요:', '부적절한 질문으로 인한 정지');
-        if (!reason) return;
-
         // 정지 기간 선택 옵션 제공
         const durationOptions = [
             { value: 1, text: '1일' },
@@ -1097,6 +1090,15 @@ async function suspendUserFromQuestion(userId, userName) {
         }
         
         const duration = durationOptions[selectedIndex].value;
+        const durationText_selected = durationOptions[selectedIndex].text;
+        
+        // 정지 기간 정보와 함께 확인
+        if (!confirm(`'${userName}' 사용자를 ${durationText_selected} 정지시키겠습니까?`)) {
+            return;
+        }
+        
+        const reason = prompt('정지 사유를 입력하세요:', '부적절한 질문으로 인한 정지');
+        if (!reason) return;
 
         const response = await fetch(`/api/admin/users/${userId}/suspend`, {
             method: 'PUT',
@@ -1127,14 +1129,7 @@ async function suspendUserFromQuestion(userId, userName) {
 
 // 답변에서 사용자 정지
 async function suspendUserFromAnswer(userId, userName) {
-    if (!confirm(`'${userName}' 사용자를 정지시키겠습니까?`)) {
-        return;
-    }
-
     try {
-        const reason = prompt('정지 사유를 입력하세요:', '부적절한 답변으로 인한 정지');
-        if (!reason) return;
-
         // 정지 기간 선택 옵션 제공
         const durationOptions = [
             { value: 1, text: '1일' },
@@ -1159,6 +1154,15 @@ async function suspendUserFromAnswer(userId, userName) {
         }
         
         const duration = durationOptions[selectedIndex].value;
+        const durationText_selected = durationOptions[selectedIndex].text;
+        
+        // 정지 기간 정보와 함께 확인
+        if (!confirm(`'${userName}' 사용자를 ${durationText_selected} 정지시키겠습니까?`)) {
+            return;
+        }
+        
+        const reason = prompt('정지 사유를 입력하세요:', '부적절한 답변으로 인한 정지');
+        if (!reason) return;
 
         const response = await fetch(`/api/admin/users/${userId}/suspend`, {
             method: 'PUT',
