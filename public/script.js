@@ -11,7 +11,11 @@ function initScrollAnimations() {
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
+                // 요소가 화면에 나타날 때 애니메이션 시작
                 entry.target.classList.add('animate');
+            } else {
+                // 요소가 화면에서 벗어날 때 애니메이션 클래스 제거
+                entry.target.classList.remove('animate');
             }
         });
     }, observerOptions);
@@ -19,6 +23,8 @@ function initScrollAnimations() {
     // 애니메이션 대상 요소들 관찰 시작
     const animatedElements = document.querySelectorAll('.animate-on-scroll');
     animatedElements.forEach(el => observer.observe(el));
+    
+    console.log(`스크롤 애니메이션 초기화 완료: ${animatedElements.length}개 요소 관찰 중`);
 }
 
 /**
