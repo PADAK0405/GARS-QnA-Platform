@@ -1846,7 +1846,10 @@ app.get('/api/ranking/level', async (req, res) => {
 });
 
 // 사용자 랭킹 정보 API
-app.get('/api/user/ranking', requireAuth, async (req, res) => {
+app.get('/api/user/ranking', async (req, res) => {
+    if (!req.user) {
+        return res.status(401).json({ error: '로그인이 필요합니다.' });
+    }
     try {
         const userId = req.user.id;
         
