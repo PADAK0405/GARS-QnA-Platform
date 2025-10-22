@@ -1073,8 +1073,30 @@ async function suspendUserFromQuestion(userId, userName) {
         const reason = prompt('정지 사유를 입력하세요:', '부적절한 질문으로 인한 정지');
         if (!reason) return;
 
-        const duration = prompt('정지 기간을 입력하세요 (일 단위, 0은 무기한):', '7');
-        if (duration === null) return;
+        // 정지 기간 선택 옵션 제공
+        const durationOptions = [
+            { value: 1, text: '1일' },
+            { value: 3, text: '3일' },
+            { value: 7, text: '7일' },
+            { value: 14, text: '14일' },
+            { value: 30, text: '30일' },
+            { value: 0, text: '무기한' }
+        ];
+        
+        const durationText = durationOptions.map((opt, index) => 
+            `${index + 1}. ${opt.text}`
+        ).join('\n');
+        
+        const durationChoice = prompt(`정지 기간을 선택하세요:\n${durationText}\n\n번호를 입력하세요 (1-6):`, '3');
+        if (durationChoice === null) return;
+        
+        const selectedIndex = parseInt(durationChoice) - 1;
+        if (selectedIndex < 0 || selectedIndex >= durationOptions.length) {
+            showToast('올바른 번호를 입력해주세요.', 'error');
+            return;
+        }
+        
+        const duration = durationOptions[selectedIndex].value;
 
         const response = await fetch(`/api/admin/users/${userId}/suspend`, {
             method: 'PUT',
@@ -1113,8 +1135,30 @@ async function suspendUserFromAnswer(userId, userName) {
         const reason = prompt('정지 사유를 입력하세요:', '부적절한 답변으로 인한 정지');
         if (!reason) return;
 
-        const duration = prompt('정지 기간을 입력하세요 (일 단위, 0은 무기한):', '7');
-        if (duration === null) return;
+        // 정지 기간 선택 옵션 제공
+        const durationOptions = [
+            { value: 1, text: '1일' },
+            { value: 3, text: '3일' },
+            { value: 7, text: '7일' },
+            { value: 14, text: '14일' },
+            { value: 30, text: '30일' },
+            { value: 0, text: '무기한' }
+        ];
+        
+        const durationText = durationOptions.map((opt, index) => 
+            `${index + 1}. ${opt.text}`
+        ).join('\n');
+        
+        const durationChoice = prompt(`정지 기간을 선택하세요:\n${durationText}\n\n번호를 입력하세요 (1-6):`, '3');
+        if (durationChoice === null) return;
+        
+        const selectedIndex = parseInt(durationChoice) - 1;
+        if (selectedIndex < 0 || selectedIndex >= durationOptions.length) {
+            showToast('올바른 번호를 입력해주세요.', 'error');
+            return;
+        }
+        
+        const duration = durationOptions[selectedIndex].value;
 
         const response = await fetch(`/api/admin/users/${userId}/suspend`, {
             method: 'PUT',
