@@ -1,16 +1,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
 
 :root {
-    /* 파스텔 톤 색상 팔레트 */
-    --primary-color: #8B5CF6;
-    --primary-dark: #7C3AED;
-    --primary-light: #A78BFA;
-    --accent-color: #F59E0B;
-    --secondary-color: #EC4899;
-    --tertiary-color: #06B6D4;
+    /* 밝은 하늘색 파스텔 톤 색상 팔레트 */
+    --primary-color: #3B82F6;
+    --primary-dark: #2563EB;
+    --primary-light: #60A5FA;
+    --accent-color: #0EA5E9;
+    --secondary-color: #06B6D4;
+    --tertiary-color: #8DD3C7;
     
-    /* 부드러운 배경색 */
-    --background-color: #FEFBF3;
+    /* 하늘같은 부드러운 배경색 */
+    --background-color: #F0F9FF;
     --card-bg-color: #FFFFFF;
     --surface-color: #F8FAFC;
     
@@ -20,22 +20,22 @@
     --text-light: #9CA3AF;
     --text-inverse: #FFFFFF;
     
-    /* 부드러운 보더 */
-    --border-color: #E5E7EB;
-    --border-light: #F3F4F6;
-    --border-accent: #E0E7FF;
+    /* 하늘색 계열 보더 */
+    --border-color: #E0F2FE;
+    --border-light: #F0F9FF;
+    --border-accent: #BAE6FD;
     
     /* 성공/경고 색상 */
-    --success-color: #10B981;
+    --success-color: #06B6D4;
     --warning-color: #F59E0B;
     --error-color: #EF4444;
     
-    /* 부드러운 그림자 */
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-    --shadow-lg: 0 8px 25px rgba(0, 0, 0, 0.12);
-    --shadow-hover: 0 12px 35px rgba(0, 0, 0, 0.15);
-    --shadow-colored: 0 8px 25px rgba(139, 92, 246, 0.15);
+    /* 하늘색 계열 그림자 */
+    --shadow-sm: 0 1px 3px rgba(59, 130, 246, 0.05);
+    --shadow-md: 0 4px 12px rgba(59, 130, 246, 0.08);
+    --shadow-lg: 0 8px 25px rgba(59, 130, 246, 0.12);
+    --shadow-hover: 0 12px 35px rgba(59, 130, 246, 0.15);
+    --shadow-colored: 0 8px 25px rgba(59, 130, 246, 0.2);
     
     /* 둥근 모서리 */
     --radius-sm: 12px;
@@ -59,7 +59,7 @@
 
 body {
     font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: linear-gradient(135deg, #FEFBF3 0%, #F8FAFC 100%);
+    background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 50%, #BAE6FD 100%);
     background-attachment: fixed;
     color: var(--text-color);
     margin: 0;

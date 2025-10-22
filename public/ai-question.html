@@ -9,7 +9,7 @@
 </head>
 <body>
     <nav class="navbar">
-        <a href="/" class="navbar-brand">Gaon QandnA</a>
+        <a href="/" class="navbar-brand">Gaon QandA</a>
         <div id="auth-container"></div>
     </nav>
 
@@ -301,11 +301,18 @@
 
                 if (response.ok) {
                     const data = await response.json();
-                    displayAIResponse(data.answer);
-                    questionInput.value = '';
-                    imageInput.value = '';
-                    document.getElementById('ai-image-preview').innerHTML = '';
-                    showToast('AI 질문이 완료되었습니다!', 'success');
+                    console.log('AI 응답 데이터:', data);
+                    
+                    if (data.answer && data.answer.trim() !== '') {
+                        displayAIResponse(data.answer);
+                        questionInput.value = '';
+                        imageInput.value = '';
+                        document.getElementById('ai-image-preview').innerHTML = '';
+                        showToast('AI 질문이 완료되었습니다!', 'success');
+                    } else {
+                        console.error('AI 응답이 비어있음:', data);
+                        showToast('AI 응답을 받지 못했습니다. 다시 시도해주세요.', 'error');
+                    }
                     
                     // 포인트 정보 업데이트
                     await loadUserInfo();
