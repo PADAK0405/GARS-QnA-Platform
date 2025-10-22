@@ -52,6 +52,33 @@ body {
     min-height: 100vh;
 }
 
+/* 다른 페이지들을 위한 흰색 배경 */
+body.white-bg {
+    background: #f8fafc;
+    color: #1e293b;
+}
+
+body.white-bg .navbar {
+    background: rgba(255, 255, 255, 0.95);
+    border-bottom: 1px solid #e2e8f0;
+}
+
+body.white-bg .navbar-brand {
+    color: var(--primary-color);
+    text-shadow: none;
+}
+
+body.white-bg .nav-links a {
+    color: #64748b;
+    text-shadow: none;
+}
+
+body.white-bg .nav-links a:hover,
+body.white-bg .nav-links a.active {
+    color: var(--primary-color);
+    background: rgba(59, 130, 246, 0.1);
+}
+
 /* Navbar Styles */
 .navbar {
     background: rgba(255, 255, 255, 0.1);
@@ -199,6 +226,41 @@ body {
     background: rgba(255, 255, 255, 0.15);
     transform: translateY(-5px);
     box-shadow: var(--shadow-hover);
+}
+
+/* 흰색 배경 페이지에서의 글래스모피즘 스타일 */
+body.white-bg .card, 
+body.white-bg .glass-card, 
+body.white-bg .feature-card, 
+body.white-bg .stat-item {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    box-shadow: 0 8px 32px rgba(59, 130, 246, 0.1);
+}
+
+body.white-bg .card:hover, 
+body.white-bg .glass-card:hover, 
+body.white-bg .feature-card:hover, 
+body.white-bg .stat-item:hover {
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 15px 35px rgba(59, 130, 246, 0.15);
+}
+
+/* 흰색 배경 페이지에서의 텍스트 색상 */
+body.white-bg .card h1,
+body.white-bg .card h2,
+body.white-bg .card h3,
+body.white-bg .card p,
+body.white-bg .glass-card h1,
+body.white-bg .glass-card h2,
+body.white-bg .glass-card h3,
+body.white-bg .glass-card p,
+body.white-bg .feature-card h3,
+body.white-bg .feature-card p,
+body.white-bg .stat-item .stat-number,
+body.white-bg .stat-item .stat-label {
+    color: #1e293b;
 }
 
 @keyframes fadeIn {

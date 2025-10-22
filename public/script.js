@@ -1,17 +1,22 @@
 /**
  * 스크롤 애니메이션 초기화 함수
  * Intersection Observer를 사용하여 요소가 화면에 나타날 때 애니메이션 트리거
+ * 위아래 스크롤 모두에서 작동
  */
 function initScrollAnimations() {
     const observerOptions = {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
+        threshold: 0.2,
+        rootMargin: '0px 0px -100px 0px'
     };
 
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
+                // 요소가 화면에 나타날 때 애니메이션 시작
                 entry.target.classList.add('animate');
+            } else {
+                // 요소가 화면에서 벗어날 때 애니메이션 제거 (위아래 스크롤 지원)
+                entry.target.classList.remove('animate');
             }
         });
     }, observerOptions);
@@ -19,6 +24,8 @@ function initScrollAnimations() {
     // 애니메이션 대상 요소들 관찰 시작
     const animatedElements = document.querySelectorAll('.animate-on-scroll');
     animatedElements.forEach(el => observer.observe(el));
+    
+    console.log(`스크롤 애니메이션 초기화 완료: ${animatedElements.length}개 요소 관찰 중`);
 }
 
 /**
