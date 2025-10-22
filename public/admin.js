@@ -113,7 +113,7 @@ async function loadUsers() {
                     </thead>
                     <tbody>
                         ${users.map(user => `
-                            <tr>
+                            <tr data-user-id="${user.id}">
                                 <td>${escapeHtml(user.display_name)}</td>
                                 <td>${escapeHtml(user.email || '-')}</td>
                                 <td>${user.score}</td>
@@ -1063,131 +1063,47 @@ async function punishUser(reportId, targetId, targetType) {
     }
 }
 
-// 질문에서 사용자 정지
-async function suspendUserFromQuestion(userId, userName) {
-    try {
-        // 정지 기간 선택 옵션 제공
-        const durationOptions = [
-            { value: 1, text: '1일' },
-            { value: 3, text: '3일' },
-            { value: 7, text: '7일' },
-            { value: 14, text: '14일' },
-            { value: 30, text: '30일' },
-            { value: 0, text: '무기한' }
-        ];
+// 질문에서 사용자 정지 - 사용자 관리 페이지로 이동
+function suspendUserFromQuestion(userId, userName) {
+    if (confirm(`'${userName}' 사용자를 정지하려면 사용자 관리 페이지로 이동하시겠습니까?`)) {
+        // 사용자 관리 탭으로 이동
+        document.querySelector('[data-tab="users"]').click();
         
-        const durationText = durationOptions.map((opt, index) => 
-            `${index + 1}. ${opt.text}`
-        ).join('\n');
+        // 해당 사용자 하이라이트를 위한 스크롤 (약간의 지연 후)
+        setTimeout(() => {
+            const userRow = document.querySelector(`tr[data-user-id="${userId}"]`);
+            if (userRow) {
+                userRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                userRow.style.backgroundColor = '#fff3cd';
+                setTimeout(() => {
+                    userRow.style.backgroundColor = '';
+                }, 3000);
+            }
+        }, 500);
         
-        const durationChoice = prompt(`정지 기간을 선택하세요:\n${durationText}\n\n번호를 입력하세요 (1-6):`, '3');
-        if (durationChoice === null) return;
-        
-        const selectedIndex = parseInt(durationChoice) - 1;
-        if (selectedIndex < 0 || selectedIndex >= durationOptions.length) {
-            showToast('올바른 번호를 입력해주세요.', 'error');
-            return;
-        }
-        
-        const duration = durationOptions[selectedIndex].value;
-        const durationText_selected = durationOptions[selectedIndex].text;
-        
-        // 정지 기간 정보와 함께 확인
-        if (!confirm(`'${userName}' 사용자를 ${durationText_selected} 정지시키겠습니까?`)) {
-            return;
-        }
-        
-        const reason = prompt('정지 사유를 입력하세요:', '부적절한 질문으로 인한 정지');
-        if (!reason) return;
-
-        const response = await fetch(`/api/admin/users/${userId}/suspend`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': window.csrfToken || ''
-            },
-            body: JSON.stringify({
-                status: 'suspended',
-                reason: reason,
-                duration: parseInt(duration) || 0
-            }),
-            credentials: 'include'
-        });
-
-        if (response.ok) {
-            showToast(`'${userName}' 사용자가 정지되었습니다.`, 'success');
-            // 질문 목록 새로고침
-            loadQuestions();
-        } else {
-            throw new Error('사용자 정지 처리에 실패했습니다.');
-        }
-    } catch (error) {
-        console.error('사용자 정지 실패:', error);
-        showToast(error.message, 'error');
+        showToast('사용자 관리 페이지로 이동했습니다. 해당 사용자를 정지해주세요.', 'info');
     }
 }
 
-// 답변에서 사용자 정지
-async function suspendUserFromAnswer(userId, userName) {
-    try {
-        // 정지 기간 선택 옵션 제공
-        const durationOptions = [
-            { value: 1, text: '1일' },
-            { value: 3, text: '3일' },
-            { value: 7, text: '7일' },
-            { value: 14, text: '14일' },
-            { value: 30, text: '30일' },
-            { value: 0, text: '무기한' }
-        ];
+// 답변에서 사용자 정지 - 사용자 관리 페이지로 이동
+function suspendUserFromAnswer(userId, userName) {
+    if (confirm(`'${userName}' 사용자를 정지하려면 사용자 관리 페이지로 이동하시겠습니까?`)) {
+        // 사용자 관리 탭으로 이동
+        document.querySelector('[data-tab="users"]').click();
         
-        const durationText = durationOptions.map((opt, index) => 
-            `${index + 1}. ${opt.text}`
-        ).join('\n');
+        // 해당 사용자 하이라이트를 위한 스크롤 (약간의 지연 후)
+        setTimeout(() => {
+            const userRow = document.querySelector(`tr[data-user-id="${userId}"]`);
+            if (userRow) {
+                userRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                userRow.style.backgroundColor = '#fff3cd';
+                setTimeout(() => {
+                    userRow.style.backgroundColor = '';
+                }, 3000);
+            }
+        }, 500);
         
-        const durationChoice = prompt(`정지 기간을 선택하세요:\n${durationText}\n\n번호를 입력하세요 (1-6):`, '3');
-        if (durationChoice === null) return;
-        
-        const selectedIndex = parseInt(durationChoice) - 1;
-        if (selectedIndex < 0 || selectedIndex >= durationOptions.length) {
-            showToast('올바른 번호를 입력해주세요.', 'error');
-            return;
-        }
-        
-        const duration = durationOptions[selectedIndex].value;
-        const durationText_selected = durationOptions[selectedIndex].text;
-        
-        // 정지 기간 정보와 함께 확인
-        if (!confirm(`'${userName}' 사용자를 ${durationText_selected} 정지시키겠습니까?`)) {
-            return;
-        }
-        
-        const reason = prompt('정지 사유를 입력하세요:', '부적절한 답변으로 인한 정지');
-        if (!reason) return;
-
-        const response = await fetch(`/api/admin/users/${userId}/suspend`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': window.csrfToken || ''
-            },
-            body: JSON.stringify({
-                status: 'suspended',
-                reason: reason,
-                duration: parseInt(duration) || 0
-            }),
-            credentials: 'include'
-        });
-
-        if (response.ok) {
-            showToast(`'${userName}' 사용자가 정지되었습니다.`, 'success');
-            // 답변 목록 새로고침
-            loadAnswers();
-        } else {
-            throw new Error('사용자 정지 처리에 실패했습니다.');
-        }
-    } catch (error) {
-        console.error('사용자 정지 실패:', error);
-        showToast(error.message, 'error');
+        showToast('사용자 관리 페이지로 이동했습니다. 해당 사용자를 정지해주세요.', 'info');
     }
 }
 
