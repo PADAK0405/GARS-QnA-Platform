@@ -1,4 +1,27 @@
 /**
+ * 스크롤 애니메이션 초기화 함수
+ * Intersection Observer를 사용하여 요소가 화면에 나타날 때 애니메이션 트리거
+ */
+function initScrollAnimations() {
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('animate');
+            }
+        });
+    }, observerOptions);
+
+    // 애니메이션 대상 요소들 관찰 시작
+    const animatedElements = document.querySelectorAll('.animate-on-scroll');
+    animatedElements.forEach(el => observer.observe(el));
+}
+
+/**
  * CSRF 토큰 가져오기 함수
  * 서버에서 CSRF 토큰을 가져와서 메타 태그와 전역 변수에 설정
  * @async
@@ -59,6 +82,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         // CSRF 토큰 초기화
         await fetchCSRFToken();
+        
+        // 스크롤 애니메이션 초기화
+        initScrollAnimations();
         
         // 현재 페이지 식별 및 초기화
         const path = window.location.pathname;
