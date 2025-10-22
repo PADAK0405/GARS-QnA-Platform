@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI에게 질문하기 - QnA Hub</title>
+    <title>AI에게 질문하기 - QandA Hub</title>
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
 </head>
 <body>
     <nav class="navbar">
-        <a href="/" class="navbar-brand">Gaon QnA</a>
+        <a href="/" class="navbar-brand">Gaon QandnA</a>
         <div id="auth-container"></div>
     </nav>
 
@@ -152,6 +152,7 @@
             questionInput.addEventListener('input', () => {
                 const hasText = questionInput.value.trim().length > 0;
                 const hasPoints = currentUser && currentUser.levelInfo && currentUser.levelInfo.points && currentUser.levelInfo.points.canAskAI;
+                console.log('버튼 상태 확인:', { hasText, hasPoints, currentUser: !!currentUser });
                 submitBtn.disabled = !hasText || !hasPoints || isSubmitting;
             });
 
