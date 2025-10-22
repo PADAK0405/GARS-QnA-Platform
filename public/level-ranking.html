@@ -52,7 +52,6 @@
                 }
                 
                 const rankings = await response.json();
-                console.log('랭킹 데이터:', rankings);
                 displayRankings(rankings, 'level');
             } catch (error) {
                 console.error('레벨 랭킹 로드 실패:', error);

@@ -60,11 +60,8 @@
         document.addEventListener('DOMContentLoaded', loadScoreRanking);
 
         async function loadScoreRanking() {
-            console.log('점수 랭킹 로드 시작');
             try {
-                console.log('API 요청 중: /api/ranking/score');
                 const response = await fetch('/api/ranking/score');
-                console.log('API 응답 상태:', response.status);
                 
                 if (!response.ok) {
                     const errorText = await response.text();
@@ -73,7 +70,6 @@
                 }
                 
                 const rankings = await response.json();
-                console.log('랭킹 데이터:', rankings);
                 displayRankings(rankings, 'score');
                 
                 // 사용자 랭킹 정보 로드
