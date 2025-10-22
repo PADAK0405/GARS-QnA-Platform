@@ -77,11 +77,39 @@ class Database {
      * 랭킹 조회 (상위 10명)
      */
     static async getTopRankings(limit = 10) {
+        // 먼저 모든 사용자 데이터 확인
+        const [allUsers] = await pool.query(`SELECT id, display_name, email, score FROM users LIMIT 5`);
+        console.log('모든 사용자 샘플:', allUsers);
+        
         const [rankings] = await pool.query(
             `SELECT id, display_name, email, score, level, experience, points FROM users WHERE status = 'active' ORDER BY score DESC LIMIT ${limit}`
         );
         console.log('랭킹 쿼리 결과:', rankings); // 디버깅용 로그
-        return rankings;
+        
+        // 데이터 정제
+        const cleanedRankings = rankings.map(user => {
+            const cleanedUser = {
+                id: user.id,
+                score: user.score || 0,
+                level: user.level || 1,
+                experience: user.experience || 0,
+                points: user.points || 0
+            };
+            
+            // display_name 처리
+            if (user.display_name && user.display_name !== 'undefined' && user.display_name !== 'null' && user.display_name.trim() !== '') {
+                cleanedUser.display_name = user.display_name.trim();
+            } else if (user.email && user.email !== 'undefined' && user.email !== 'null') {
+                cleanedUser.display_name = user.email.split('@')[0];
+            } else {
+                cleanedUser.display_name = `사용자${user.id}`;
+            }
+            
+            return cleanedUser;
+        });
+        
+        console.log('정제된 랭킹 데이터:', cleanedRankings);
+        return cleanedRankings;
     }
 
     // ========== 질문 관련 쿼리 ==========
