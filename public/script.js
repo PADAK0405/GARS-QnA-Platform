@@ -975,7 +975,10 @@ function setupAskPage() {
 
 async function loadRankings() {
     const rankingList = document.getElementById('ranking-list');
-    const rankings = await (await fetch('/api/rankings')).json();
+    const response = await fetch('/api/rankings');
+    const rankings = await response.json();
+    
+    console.log('랭킹 데이터:', rankings); // 디버깅용 로그 추가
     
     if (rankings.length === 0) {
         rankingList.innerHTML = `
@@ -987,12 +990,14 @@ async function loadRankings() {
     }
     
     rankingList.innerHTML = rankings.map((user, i) => {
+        console.log(`사용자 ${i + 1}:`, user); // 각 사용자 데이터 로그
+        const displayName = user.display_name || user.name || '익명 사용자';
         return `<li>
             <div>
                 <span style="color: var(--text-muted); font-weight: 600;">${i + 1}위</span>
-                <strong style="margin-left: 8px;">${escapeHtml(user.display_name || '익명 사용자')}</strong>
+                <strong style="margin-left: 8px;">${escapeHtml(displayName)}</strong>
             </div>
-            <span class="rank-badge">${user.score}점</span>
+            <span class="rank-badge">${user.score || 0}점</span>
         </li>`;
     }).join('');
 }
