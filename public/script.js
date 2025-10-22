@@ -60,15 +60,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         // CSRF 토큰 초기화
         await fetchCSRFToken();
         
-        // 사용자 상태 업데이트
-        await updateUserStatus();
-        
         // 현재 페이지 식별 및 초기화
         const path = window.location.pathname;
         const page = path.split('/').pop();
         
-        // 페이지별 초기화 실행
+        // 페이지별 초기화 실행 (사용자 상태와 독립적으로)
         await initializePage(page);
+        
+        // 사용자 상태 업데이트 (백그라운드에서 실행)
+        updateUserStatus().catch(error => {
+            console.log('사용자 상태 업데이트 실패 (비로그인 상태일 수 있음):', error.message);
+        });
         
     } catch (error) {
         console.error('페이지 초기화 오류:', error);
@@ -102,21 +104,11 @@ async function initializePage(page) {
 
 /**
  * 질문 목록 페이지 초기화
- * 사용자 정보 확인 후 질문 목록 로드
+ * 로그인 여부와 관계없이 질문 목록 로드
  */
 async function initializeQuestionsPage() {
-    if (currentUser) {
-        loadQuestions();
-    } else {
-        // 사용자 정보 로드 대기 후 질문 목록 로드
-        setTimeout(() => {
-            if (currentUser) {
-                loadQuestions();
-            } else {
-                console.error('사용자 정보를 로드할 수 없습니다.');
-            }
-        }, 1000);
-    }
+    // 로그인 여부와 관계없이 질문 목록 로드
+    loadQuestions();
 }
 
 /**
@@ -310,7 +302,8 @@ async function loadQuestions() {
         questionsContainer.innerHTML = `
             <div class="empty-state">
                 <h3>질문을 불러올 수 없습니다</h3>
-                <p>오류: ${escapeHtml(error.message)}</p>
+                <p>네트워크 연결을 확인하고 페이지를 새로고침해주세요.</p>
+                <button onclick="location.reload()" class="primary-btn" style="margin-top: 10px;">새로고침</button>
             </div>`;
     }
     
