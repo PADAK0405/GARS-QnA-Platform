@@ -990,7 +990,7 @@ async function loadRankings() {
         return `<li>
             <div>
                 <span style="color: var(--text-muted); font-weight: 600;">${i + 1}위</span>
-                <strong style="margin-left: 8px;">${escapeHtml(user.name)}</strong>
+                <strong style="margin-left: 8px;">${escapeHtml(user.display_name || '익명 사용자')}</strong>
             </div>
             <span class="rank-badge">${user.score}점</span>
         </li>`;

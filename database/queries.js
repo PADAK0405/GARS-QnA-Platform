@@ -78,7 +78,7 @@ class Database {
      */
     static async getTopRankings(limit = 10) {
         const [rankings] = await pool.query(
-            `SELECT display_name as name, score FROM users ORDER BY score DESC LIMIT ${limit}`
+            `SELECT display_name, score FROM users WHERE status = 'active' AND display_name IS NOT NULL ORDER BY score DESC LIMIT ${limit}`
         );
         return rankings;
     }
