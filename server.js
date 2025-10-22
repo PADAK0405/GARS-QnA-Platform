@@ -1328,11 +1328,16 @@ app.put('/api/admin/answers/:id/status', requireAdmin, async (req, res) => {
 // 관리자 로그 조회
 app.get('/api/admin/logs', requireAdmin, async (req, res) => {
     try {
+        console.log('관리자 로그 조회 요청:', req.query);
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 100;
         const offset = (page - 1) * limit;
         
+        console.log(`관리자 로그 조회 파라미터: page=${page}, limit=${limit}, offset=${offset}`);
+        
         const logs = await Database.getAdminLogs(limit, offset);
+        console.log(`관리자 로그 조회 완료: ${logs.length}개`);
+        
         res.json(logs);
     } catch (error) {
         console.error('관리자 로그 조회 오류:', error);
