@@ -107,7 +107,6 @@
     <div id="toast" class="toast"></div>
 
     <script src="protection.js"></script>
-    <script src="script.js"></script>
     <script src="csrf.js"></script>
     <script>
         let currentUser = null;
@@ -329,10 +328,21 @@
 
         function showToast(message, type = 'info') {
             const toast = document.getElementById('toast');
+            if (!toast) return;
+            
+            // 기존 토스트 애니메이션 중지
+            toast.style.animation = 'none';
+            toast.style.display = 'none';
+            
+            // 새 토스트 표시
             toast.textContent = message;
             toast.className = `toast ${type}`;
             toast.style.display = 'flex';
-            toast.style.animation = 'slideIn 0.3s ease';
+            
+            // 애니메이션 재시작
+            setTimeout(() => {
+                toast.style.animation = 'slideIn 0.3s ease';
+            }, 10);
             
             setTimeout(() => {
                 toast.style.animation = 'slideOut 0.3s ease';
