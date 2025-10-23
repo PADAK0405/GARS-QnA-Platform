@@ -1259,3 +1259,55 @@ async function loadHomePage() {
         console.error('통계 로드 실패:', error);
     }
 }
+
+/**
+ * 모바일 메뉴 토글 함수
+ */
+function toggleMobileMenu() {
+    const authContainer = document.getElementById('auth-container');
+    const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
+    
+    if (authContainer) {
+        authContainer.classList.toggle('active');
+        
+        // 햄버거 메뉴 아이콘 변경
+        if (mobileMenuToggle) {
+            if (authContainer.classList.contains('active')) {
+                mobileMenuToggle.textContent = '✕';
+            } else {
+                mobileMenuToggle.textContent = '☰';
+            }
+        }
+    }
+}
+
+// 모바일 메뉴 외부 클릭 시 메뉴 닫기
+document.addEventListener('click', function(event) {
+    const authContainer = document.getElementById('auth-container');
+    const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
+    
+    if (authContainer && mobileMenuToggle && 
+        !authContainer.contains(event.target) && 
+        !mobileMenuToggle.contains(event.target)) {
+        
+        authContainer.classList.remove('active');
+        if (mobileMenuToggle) {
+            mobileMenuToggle.textContent = '☰';
+        }
+    }
+});
+
+// 화면 크기 변경 시 모바일 메뉴 상태 초기화
+window.addEventListener('resize', function() {
+    const authContainer = document.getElementById('auth-container');
+    const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
+    
+    if (window.innerWidth > 768) {
+        if (authContainer) {
+            authContainer.classList.remove('active');
+        }
+        if (mobileMenuToggle) {
+            mobileMenuToggle.textContent = '☰';
+        }
+    }
+});

@@ -973,6 +973,23 @@ a:hover {
     color: var(--primary-dark);
 }
 
+/* Mobile Menu Toggle Button */
+.mobile-menu-toggle {
+    display: none;
+    background: none;
+    border: none;
+    color: var(--text-color);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: var(--radius-sm);
+    transition: all 0.3s ease;
+}
+
+.mobile-menu-toggle:hover {
+    background: var(--surface-color);
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     body {
@@ -984,10 +1001,15 @@ a:hover {
         height: auto;
         min-height: 60px;
         flex-wrap: wrap;
+        position: relative;
     }
     
     .navbar-brand {
         font-size: 1.3rem;
+    }
+    
+    .mobile-menu-toggle {
+        display: block;
     }
     
     #auth-container {
@@ -996,12 +1018,31 @@ a:hover {
         justify-content: space-between;
         margin-top: 8px;
         padding-bottom: 8px;
+        display: none;
+    }
+    
+    #auth-container.active {
+        display: flex;
     }
     
     .nav-menu {
         flex-direction: column;
         gap: 8px;
         width: 100%;
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: var(--card-bg-color);
+        border-radius: 0 0 var(--radius-md) var(--radius-md);
+        box-shadow: var(--shadow-lg);
+        padding: 20px;
+        z-index: 1000;
+    }
+    
+    .nav-menu.active {
+        display: flex;
     }
     
     .nav-links {
@@ -1070,9 +1111,20 @@ a:hover {
     }
 }
 
+/* Extra Small Screens */
 @media (max-width: 480px) {
+    body {
+        padding-top: 60px;
+        font-size: 14px;
+    }
+    
+    .navbar {
+        padding: 0 16px;
+        min-height: 50px;
+    }
+    
     .navbar-brand {
-        font-size: 1.2rem;
+        font-size: 1.1rem;
     }
     
     .nav-links a {
@@ -3818,20 +3870,23 @@ a:hover {
     
     .hero-title {
         font-size: 2.2rem;
+        line-height: 1.2;
     }
     
     .hero-subtitle {
         font-size: 1.1rem;
+        margin-bottom: 30px;
     }
     
     .hero-buttons {
         flex-direction: column;
         align-items: center;
+        gap: 12px;
     }
     
     .hero-btn {
         width: 100%;
-        max-width: 300px;
+        max-width: 280px;
     }
     
     .features {
@@ -3857,5 +3912,44 @@ a:hover {
     
     .stat-number {
         font-size: 2.5rem;
+    }
+}
+
+/* Extra Small Screens - Hero */
+@media (max-width: 480px) {
+    .hero {
+        padding: 40px 16px 30px;
+        min-height: 50vh;
+    }
+    
+    .hero-title {
+        font-size: 1.8rem;
+        line-height: 1.1;
+    }
+    
+    .hero-subtitle {
+        font-size: 1rem;
+        margin-bottom: 25px;
+    }
+    
+    .hero-btn {
+        padding: 12px 20px;
+        font-size: 0.95rem;
+    }
+    
+    .features {
+        padding: 40px 16px;
+    }
+    
+    .feature-card {
+        padding: 20px;
+    }
+    
+    .feature-card h3 {
+        font-size: 1.2rem;
+    }
+    
+    .feature-card p {
+        font-size: 0.9rem;
     }
 }
