@@ -132,3 +132,81 @@ CREATE TABLE IF NOT EXISTS reports (
     UNIQUE KEY unique_user_report (reporter_id, target_type, target_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 기숙사생 정보 테이블
+CREATE TABLE IF NOT EXISTS dormitory_students (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id VARCHAR(255) NOT NULL,
+    building VARCHAR(50) NOT NULL,
+    floor INT NOT NULL,
+    room VARCHAR(50) NOT NULL,
+    enrollment_date DATE NOT NULL,
+    graduation_date DATE NULL,
+    total_penalty_points INT DEFAULT 0,
+    total_reward_points INT DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_user_dormitory (user_id),
+    INDEX idx_building_floor_room (building, floor, room),
+    INDEX idx_is_active (is_active)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 외출/외박 신청 테이블
+CREATE TABLE IF NOT EXISTS leave_requests (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id VARCHAR(255) NOT NULL,
+    request_type ENUM('day_off', 'overnight') NOT NULL COMMENT 'day_off: 외출, overnight: 외박',
+    start_datetime DATETIME NOT NULL,
+    end_datetime DATETIME NOT NULL,
+    reason TEXT NOT NULL,
+    destination VARCHAR(255),
+    emergency_contact VARCHAR(100),
+    status ENUM('pending', 'approved', 'rejected', 'cancelled') DEFAULT 'pending',
+    approved_by VARCHAR(255) NULL,
+    approved_at TIMESTAMP NULL,
+    rejection_reason TEXT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (approved_by) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_user_id (user_id),
+    INDEX idx_status (status),
+    INDEX idx_start_datetime (start_datetime),
+    INDEX idx_created_at (created_at DESC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 벌점/상점 기록 테이블
+CREATE TABLE IF NOT EXISTS dormitory_points (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id VARCHAR(255) NOT NULL,
+    point_type ENUM('penalty', 'reward') NOT NULL,
+    points INT NOT NULL,
+    reason TEXT NOT NULL,
+    category VARCHAR(100) COMMENT '위반/수상 카테고리',
+    awarded_by VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (awarded_by) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_id (user_id),
+    INDEX idx_point_type (point_type),
+    INDEX idx_created_at (created_at DESC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 기숙사 규칙 위반 기록 테이블
+CREATE TABLE IF NOT EXISTS dormitory_violations (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id VARCHAR(255) NOT NULL,
+    violation_type VARCHAR(100) NOT NULL,
+    description TEXT NOT NULL,
+    penalty_points INT DEFAULT 0,
+    auto_suspended BOOLEAN DEFAULT FALSE,
+    suspension_days INT DEFAULT 0,
+    recorded_by VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (recorded_by) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_id (user_id),
+    INDEX idx_created_at (created_at DESC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+

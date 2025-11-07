@@ -31,7 +31,8 @@ async function initializeServer() {
             { name: '포인트 시스템 스키마 업데이트', fn: updatePointsSchema },
             { name: '신고 시스템 테이블 생성', fn: createReportsTable },
             { name: '사용자 레벨 시스템 초기화', fn: migrateUserLevels },
-            { name: '캘린더 테이블 생성', fn: createCalendarTable }
+            { name: '캘린더 테이블 생성', fn: createCalendarTable },
+            { name: '기숙사 관리 테이블 생성', fn: createDormitoryTables }
         ];
         
         // 각 초기화 작업을 순차적으로 실행
@@ -242,6 +243,127 @@ async function createCalendarTable() {
     } catch (error) {
         console.error('  ❌ 캘린더 테이블 생성 실패:', error);
         throw error;
+    }
+}
+
+/**
+ * 기숙사 관리 테이블 생성
+ * 기숙사생 정보, 외출/외박 신청, 벌점/상점, 위반 기록 테이블을 생성
+ * @async
+ * @throws {Error} 테이블 생성 실패 시
+ */
+async function createDormitoryTables() {
+    const pool = require('./database/connection');
+    
+    try {
+        // 기숙사생 정보 테이블
+        const createDormitoryStudentsTable = `
+            CREATE TABLE IF NOT EXISTS dormitory_students (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id VARCHAR(255) NOT NULL,
+                building VARCHAR(50) NOT NULL,
+                floor INT NOT NULL,
+                room VARCHAR(50) NOT NULL,
+                enrollment_date DATE NOT NULL,
+                graduation_date DATE NULL,
+                total_penalty_points INT DEFAULT 0,
+                total_reward_points INT DEFAULT 0,
+                is_active BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                UNIQUE KEY unique_user_dormitory (user_id),
+                INDEX idx_building_floor_room (building, floor, room),
+                INDEX idx_is_active (is_active)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `;
+        
+        // 외출/외박 신청 테이블
+        const createLeaveRequestsTable = `
+            CREATE TABLE IF NOT EXISTS leave_requests (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id VARCHAR(255) NOT NULL,
+                request_type ENUM('day_off', 'overnight') NOT NULL COMMENT 'day_off: 외출, overnight: 외박',
+                start_datetime DATETIME NOT NULL,
+                end_datetime DATETIME NOT NULL,
+                reason TEXT NOT NULL,
+                destination VARCHAR(255),
+                emergency_contact VARCHAR(100),
+                status ENUM('pending', 'approved', 'rejected', 'cancelled') DEFAULT 'pending',
+                approved_by VARCHAR(255) NULL,
+                approved_at TIMESTAMP NULL,
+                rejection_reason TEXT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (approved_by) REFERENCES users(id) ON DELETE SET NULL,
+                INDEX idx_user_id (user_id),
+                INDEX idx_status (status),
+                INDEX idx_start_datetime (start_datetime),
+                INDEX idx_created_at (created_at DESC)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `;
+        
+        // 벌점/상점 기록 테이블
+        const createDormitoryPointsTable = `
+            CREATE TABLE IF NOT EXISTS dormitory_points (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id VARCHAR(255) NOT NULL,
+                point_type ENUM('penalty', 'reward') NOT NULL,
+                points INT NOT NULL,
+                reason TEXT NOT NULL,
+                category VARCHAR(100) COMMENT '위반/수상 카테고리',
+                awarded_by VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (awarded_by) REFERENCES users(id) ON DELETE CASCADE,
+                INDEX idx_user_id (user_id),
+                INDEX idx_point_type (point_type),
+                INDEX idx_created_at (created_at DESC)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `;
+        
+        // 기숙사 규칙 위반 기록 테이블
+        const createDormitoryViolationsTable = `
+            CREATE TABLE IF NOT EXISTS dormitory_violations (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id VARCHAR(255) NOT NULL,
+                violation_type VARCHAR(100) NOT NULL,
+                description TEXT NOT NULL,
+                penalty_points INT DEFAULT 0,
+                auto_suspended BOOLEAN DEFAULT FALSE,
+                suspension_days INT DEFAULT 0,
+                recorded_by VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (recorded_by) REFERENCES users(id) ON DELETE CASCADE,
+                INDEX idx_user_id (user_id),
+                INDEX idx_created_at (created_at DESC)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `;
+        
+        await pool.execute(createDormitoryStudentsTable);
+        console.log('  ✅ dormitory_students 테이블 확인/생성 완료');
+        
+        await pool.execute(createLeaveRequestsTable);
+        console.log('  ✅ leave_requests 테이블 확인/생성 완료');
+        
+        await pool.execute(createDormitoryPointsTable);
+        console.log('  ✅ dormitory_points 테이블 확인/생성 완료');
+        
+        await pool.execute(createDormitoryViolationsTable);
+        console.log('  ✅ dormitory_violations 테이블 확인/생성 완료');
+        
+        console.log('  🏠 기숙사 관리 테이블 준비 완료');
+        
+    } catch (error) {
+        console.error('  ❌ 기숙사 관리 테이블 생성 실패:', error);
+        // 외래키 제약 조건 오류는 무시 (users 테이블이 없는 경우)
+        if (error.code === 'ER_NO_REFERENCED_ROW_2' || error.code === 'ER_CANNOT_ADD_FOREIGN') {
+            console.log('  ⚠️  외래키 제약 조건 오류 (users 테이블이 아직 없을 수 있음)');
+        } else {
+            throw error;
+        }
     }
 }
 
@@ -1946,6 +2068,236 @@ app.get('/api/user/ranking', async (req, res) => {
     } catch (error) {
         console.error('사용자 랭킹 정보 조회 실패:', error);
         res.status(500).json({ error: '랭킹 정보를 조회할 수 없습니다.' });
+    }
+});
+
+// ========== 기숙사 관리 API ==========
+
+// 기숙사생 정보 조회
+app.get('/api/dormitory/student', async (req, res) => {
+    if (!req.user) {
+        return res.status(401).json({ error: '로그인이 필요합니다.' });
+    }
+    
+    try {
+        const student = await Database.getDormitoryStudent(req.user.id);
+        if (!student) {
+            return res.status(404).json({ error: '기숙사생 정보가 없습니다.' });
+        }
+        res.json(student);
+    } catch (error) {
+        console.error('기숙사생 정보 조회 오류:', error);
+        res.status(500).json({ error: '기숙사생 정보를 불러올 수 없습니다.' });
+    }
+});
+
+// 기숙사생 등록 (관리자용)
+app.post('/api/dormitory/students', requireAdmin, async (req, res) => {
+    try {
+        const { userId, building, floor, room, enrollmentDate } = req.body;
+        
+        if (!userId || !building || !floor || !room || !enrollmentDate) {
+            return res.status(400).json({ error: '필수 정보가 누락되었습니다.' });
+        }
+        
+        await Database.registerDormitoryStudent(userId, building, floor, room, enrollmentDate);
+        res.json({ success: true, message: '기숙사생이 등록되었습니다.' });
+    } catch (error) {
+        console.error('기숙사생 등록 오류:', error);
+        res.status(500).json({ error: '기숙사생 등록에 실패했습니다.' });
+    }
+});
+
+// 기숙사생 목록 조회 (관리자용)
+app.get('/api/dormitory/students', requireAdmin, async (req, res) => {
+    try {
+        const { building, floor, isActive } = req.query;
+        const students = await Database.getAllDormitoryStudents(
+            building || null,
+            floor ? parseInt(floor) : null,
+            isActive !== 'false'
+        );
+        res.json(students);
+    } catch (error) {
+        console.error('기숙사생 목록 조회 오류:', error);
+        res.status(500).json({ error: '기숙사생 목록을 불러올 수 없습니다.' });
+    }
+});
+
+// 외출/외박 신청 생성
+app.post('/api/dormitory/leave-requests', async (req, res) => {
+    if (!req.user) {
+        return res.status(401).json({ error: '로그인이 필요합니다.' });
+    }
+    
+    try {
+        const { requestType, startDatetime, endDatetime, reason, destination, emergencyContact } = req.body;
+        
+        if (!requestType || !startDatetime || !endDatetime || !reason) {
+            return res.status(400).json({ error: '필수 정보가 누락되었습니다.' });
+        }
+        
+        // 기숙사생 확인
+        const student = await Database.getDormitoryStudent(req.user.id);
+        if (!student) {
+            return res.status(403).json({ error: '기숙사생만 신청할 수 있습니다.' });
+        }
+        
+        const requestId = await Database.createLeaveRequest(
+            req.user.id,
+            requestType,
+            startDatetime,
+            endDatetime,
+            reason,
+            destination,
+            emergencyContact
+        );
+        
+        res.status(201).json({ success: true, requestId, message: '외출/외박 신청이 접수되었습니다.' });
+    } catch (error) {
+        console.error('외출/외박 신청 오류:', error);
+        res.status(500).json({ error: '외출/외박 신청에 실패했습니다.' });
+    }
+});
+
+// 외출/외박 신청 목록 조회
+app.get('/api/dormitory/leave-requests', async (req, res) => {
+    if (!req.user) {
+        return res.status(401).json({ error: '로그인이 필요합니다.' });
+    }
+    
+    try {
+        const user = await Database.findUserById(req.user.id);
+        const isAdmin = await Database.isAdmin(req.user.id);
+        
+        // 관리자는 모든 신청 조회, 일반 사용자는 자신의 신청만 조회
+        const userId = isAdmin ? null : req.user.id;
+        const { status } = req.query;
+        
+        const requests = await Database.getLeaveRequests(userId, status || null);
+        res.json(requests);
+    } catch (error) {
+        console.error('외출/외박 신청 목록 조회 오류:', error);
+        res.status(500).json({ error: '외출/외박 신청 목록을 불러올 수 없습니다.' });
+    }
+});
+
+// 외출/외박 신청 승인/거부 (관리자용)
+app.put('/api/dormitory/leave-requests/:id', requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status, rejectionReason } = req.body;
+        
+        if (!['approved', 'rejected', 'cancelled'].includes(status)) {
+            return res.status(400).json({ error: '유효하지 않은 상태입니다.' });
+        }
+        
+        await Database.updateLeaveRequestStatus(id, status, req.user.id, rejectionReason || null);
+        res.json({ success: true, message: '신청 상태가 변경되었습니다.' });
+    } catch (error) {
+        console.error('외출/외박 신청 상태 변경 오류:', error);
+        res.status(500).json({ error: '신청 상태 변경에 실패했습니다.' });
+    }
+});
+
+// 벌점/상점 부여 (관리자용)
+app.post('/api/dormitory/points', requireAdmin, async (req, res) => {
+    try {
+        const { userId, pointType, points, reason, category } = req.body;
+        
+        if (!userId || !pointType || !points || !reason) {
+            return res.status(400).json({ error: '필수 정보가 누락되었습니다.' });
+        }
+        
+        if (!['penalty', 'reward'].includes(pointType)) {
+            return res.status(400).json({ error: '유효하지 않은 포인트 타입입니다.' });
+        }
+        
+        await Database.addDormitoryPoints(userId, pointType, points, reason, category || null, req.user.id);
+        res.json({ success: true, message: '벌점/상점이 부여되었습니다.' });
+    } catch (error) {
+        console.error('벌점/상점 부여 오류:', error);
+        res.status(500).json({ error: '벌점/상점 부여에 실패했습니다.' });
+    }
+});
+
+// 벌점/상점 기록 조회
+app.get('/api/dormitory/points', async (req, res) => {
+    if (!req.user) {
+        return res.status(401).json({ error: '로그인이 필요합니다.' });
+    }
+    
+    try {
+        const isAdmin = await Database.isAdmin(req.user.id);
+        
+        // 관리자는 모든 기록 조회 가능 (userId 파라미터가 없으면 모든 기록, 있으면 해당 사용자만)
+        // 일반 사용자는 자신의 기록만 조회
+        const userId = isAdmin ? (req.query.userId || null) : req.user.id;
+        const { pointType } = req.query;
+        
+        const points = await Database.getDormitoryPoints(userId, pointType || null);
+        res.json(points);
+    } catch (error) {
+        console.error('벌점/상점 기록 조회 오류:', error);
+        res.status(500).json({ error: '벌점/상점 기록을 불러올 수 없습니다.' });
+    }
+});
+
+// 기숙사 규칙 위반 기록 (관리자용)
+app.post('/api/dormitory/violations', requireAdmin, async (req, res) => {
+    try {
+        const { userId, violationType, description, penaltyPoints, autoSuspend, suspensionDays } = req.body;
+        
+        if (!userId || !violationType || !description) {
+            return res.status(400).json({ error: '필수 정보가 누락되었습니다.' });
+        }
+        
+        await Database.recordViolation(
+            userId,
+            violationType,
+            description,
+            penaltyPoints || 0,
+            req.user.id,
+            autoSuspend || false,
+            suspensionDays || 0
+        );
+        
+        res.json({ success: true, message: '위반 기록이 등록되었습니다.' });
+    } catch (error) {
+        console.error('위반 기록 오류:', error);
+        res.status(500).json({ error: '위반 기록에 실패했습니다.' });
+    }
+});
+
+// 기숙사 위반 기록 조회
+app.get('/api/dormitory/violations', async (req, res) => {
+    if (!req.user) {
+        return res.status(401).json({ error: '로그인이 필요합니다.' });
+    }
+    
+    try {
+        const isAdmin = await Database.isAdmin(req.user.id);
+        
+        // 관리자는 모든 기록 조회 가능 (userId 파라미터가 없으면 모든 기록, 있으면 해당 사용자만)
+        // 일반 사용자는 자신의 기록만 조회
+        const userId = isAdmin ? (req.query.userId || null) : req.user.id;
+        
+        const violations = await Database.getViolations(userId);
+        res.json(violations);
+    } catch (error) {
+        console.error('위반 기록 조회 오류:', error);
+        res.status(500).json({ error: '위반 기록을 불러올 수 없습니다.' });
+    }
+});
+
+// 기숙사 통계 조회 (관리자용)
+app.get('/api/dormitory/stats', requireAdmin, async (req, res) => {
+    try {
+        const stats = await Database.getDormitoryStats();
+        res.json(stats);
+    } catch (error) {
+        console.error('기숙사 통계 조회 오류:', error);
+        res.status(500).json({ error: '기숙사 통계를 불러올 수 없습니다.' });
     }
 });
 

@@ -751,7 +751,15 @@ class Database {
         if (status === 'suspended' || status === 'banned') {
             // 정지 상태로 변경 시 suspended_at 설정
             // JavaScript Date 객체를 MySQL DATETIME 형식으로 변환
-            const suspendedUntilFormatted = suspendedUntil ? suspendedUntil.toISOString().slice(0, 19).replace('T', ' ') : null;
+            let suspendedUntilFormatted = null;
+            if (suspendedUntil) {
+                if (suspendedUntil instanceof Date) {
+                    suspendedUntilFormatted = suspendedUntil.toISOString().slice(0, 19).replace('T', ' ');
+                } else if (typeof suspendedUntil === 'string') {
+                    // ISO 문자열인 경우
+                    suspendedUntilFormatted = suspendedUntil.replace('T', ' ').slice(0, 19);
+                }
+            }
             await pool.execute(
                 'UPDATE users SET status = ?, suspension_reason = ?, suspended_until = ?, suspended_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
                 [status, reason, suspendedUntilFormatted, userId]
@@ -1201,6 +1209,338 @@ class Database {
             console.error('❌ 데이터베이스 초기화 실패:', error.message);
             throw error;
         }
+    }
+
+    // ========== 기숙사 관리 관련 쿼리 ==========
+    
+    /**
+     * 기숙사생 정보 조회
+     */
+    static async getDormitoryStudent(userId) {
+        const [students] = await pool.execute(
+            `SELECT ds.*, u.display_name, u.email 
+             FROM dormitory_students ds
+             JOIN users u ON ds.user_id = u.id
+             WHERE ds.user_id = ?`,
+            [userId]
+        );
+        return students[0] || null;
+    }
+
+    /**
+     * 기숙사생 등록
+     */
+    static async registerDormitoryStudent(userId, building, floor, room, enrollmentDate) {
+        await pool.execute(
+            `INSERT INTO dormitory_students (user_id, building, floor, room, enrollment_date)
+             VALUES (?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE
+             building = VALUES(building),
+             floor = VALUES(floor),
+             room = VALUES(room),
+             enrollment_date = VALUES(enrollment_date),
+             is_active = TRUE`,
+            [userId, building, floor, room, enrollmentDate]
+        );
+    }
+
+    /**
+     * 기숙사생 목록 조회
+     */
+    static async getAllDormitoryStudents(building = null, floor = null, isActive = true) {
+        let query = `
+            SELECT ds.*, u.display_name, u.email, u.status as user_status
+            FROM dormitory_students ds
+            JOIN users u ON ds.user_id = u.id
+            WHERE ds.is_active = ?
+        `;
+        const params = [isActive];
+        
+        if (building) {
+            query += ' AND ds.building = ?';
+            params.push(building);
+        }
+        
+        if (floor) {
+            query += ' AND ds.floor = ?';
+            params.push(floor);
+        }
+        
+        query += ' ORDER BY ds.building, ds.floor, ds.room';
+        
+        const [students] = await pool.execute(query, params);
+        return students;
+    }
+
+    /**
+     * 외출/외박 신청 생성
+     */
+    static async createLeaveRequest(userId, requestType, startDatetime, endDatetime, reason, destination = null, emergencyContact = null) {
+        const [result] = await pool.execute(
+            `INSERT INTO leave_requests 
+             (user_id, request_type, start_datetime, end_datetime, reason, destination, emergency_contact)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [userId, requestType, startDatetime, endDatetime, reason, destination, emergencyContact]
+        );
+        return result.insertId;
+    }
+
+    /**
+     * 외출/외박 신청 조회
+     */
+    static async getLeaveRequests(userId = null, status = null) {
+        let query = `
+            SELECT lr.*, u.display_name, u.email,
+                   approver.display_name as approver_name
+            FROM leave_requests lr
+            JOIN users u ON lr.user_id = u.id
+            LEFT JOIN users approver ON lr.approved_by = approver.id
+            WHERE 1=1
+        `;
+        const params = [];
+        
+        if (userId) {
+            query += ' AND lr.user_id = ?';
+            params.push(userId);
+        }
+        
+        if (status) {
+            query += ' AND lr.status = ?';
+            params.push(status);
+        }
+        
+        query += ' ORDER BY lr.created_at DESC';
+        
+        const [requests] = await pool.execute(query, params);
+        return requests;
+    }
+
+    /**
+     * 외출/외박 신청 승인/거부
+     */
+    static async updateLeaveRequestStatus(requestId, status, approvedBy, rejectionReason = null) {
+        if (status === 'approved') {
+            await pool.execute(
+                `UPDATE leave_requests 
+                 SET status = ?, approved_by = ?, approved_at = CURRENT_TIMESTAMP, rejection_reason = NULL
+                 WHERE id = ?`,
+                [status, approvedBy, requestId]
+            );
+        } else if (status === 'rejected') {
+            await pool.execute(
+                `UPDATE leave_requests 
+                 SET status = ?, approved_by = ?, approved_at = CURRENT_TIMESTAMP, rejection_reason = ?
+                 WHERE id = ?`,
+                [status, approvedBy, rejectionReason, requestId]
+            );
+        } else {
+            await pool.execute(
+                `UPDATE leave_requests 
+                 SET status = ?
+                 WHERE id = ?`,
+                [status, requestId]
+            );
+        }
+    }
+
+    /**
+     * 벌점/상점 부여
+     */
+    static async addDormitoryPoints(userId, pointType, points, reason, category = null, awardedBy) {
+        const connection = await pool.getConnection();
+        try {
+            await connection.beginTransaction();
+            
+            // 포인트 기록 추가
+            await connection.execute(
+                `INSERT INTO dormitory_points 
+                 (user_id, point_type, points, reason, category, awarded_by)
+                 VALUES (?, ?, ?, ?, ?, ?)`,
+                [userId, pointType, points, reason, category, awardedBy]
+            );
+            
+            // 기숙사생 정보 업데이트
+            if (pointType === 'penalty') {
+                await connection.execute(
+                    `UPDATE dormitory_students 
+                     SET total_penalty_points = total_penalty_points + ?
+                     WHERE user_id = ?`,
+                    [points, userId]
+                );
+            } else {
+                await connection.execute(
+                    `UPDATE dormitory_students 
+                     SET total_reward_points = total_reward_points + ?
+                     WHERE user_id = ?`,
+                    [points, userId]
+                );
+            }
+            
+            await connection.commit();
+        } catch (error) {
+            await connection.rollback();
+            throw error;
+        } finally {
+            connection.release();
+        }
+        
+        // 벌점 누적 시 자동 정지 처리 (트랜잭션 외부에서 처리)
+        if (pointType === 'penalty') {
+            try {
+                const [student] = await pool.execute(
+                    'SELECT total_penalty_points FROM dormitory_students WHERE user_id = ?',
+                    [userId]
+                );
+                
+                if (student.length > 0) {
+                    const totalPenalty = student[0].total_penalty_points;
+                    // 벌점이 10점 이상이면 자동 정지 (10점당 최대 3일)
+                    if (totalPenalty >= 10) {
+                        // 이미 정지 상태가 아닌 경우에만 자동 정지
+                        const [user] = await pool.execute(
+                            'SELECT status FROM users WHERE id = ?',
+                            [userId]
+                        );
+                        
+                        if (user.length > 0 && user[0].status === 'active') {
+                            const suspensionDays = Math.min(3, Math.floor(totalPenalty / 10));
+                            const endDate = new Date();
+                            endDate.setDate(endDate.getDate() + suspensionDays);
+                            
+                            // 위반 기록 추가
+                            await pool.execute(
+                                `INSERT INTO dormitory_violations 
+                                 (user_id, violation_type, description, penalty_points, auto_suspended, suspension_days, recorded_by)
+                                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                                [userId, '벌점 누적', `벌점 ${totalPenalty}점 누적으로 인한 자동 정지`, totalPenalty, true, suspensionDays, awardedBy]
+                            );
+                            
+                            // 사용자 정지 처리
+                            await this.updateUserStatus(
+                                userId,
+                                'suspended',
+                                `벌점 누적 (${totalPenalty}점)로 인한 자동 정지`,
+                                endDate
+                            );
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('벌점 누적 자동 정지 처리 오류:', error);
+                // 자동 정지 실패는 전체 프로세스를 막지 않음
+            }
+        }
+    }
+
+    /**
+     * 벌점/상점 기록 조회
+     * @param {string|null} userId - 사용자 ID (null이면 모든 사용자의 기록 조회)
+     * @param {string|null} pointType - 포인트 타입 (penalty/reward) 필터
+     */
+    static async getDormitoryPoints(userId = null, pointType = null) {
+        let query = `
+            SELECT dp.*, 
+                   u.display_name as awarded_by_name,
+                   user_info.display_name
+            FROM dormitory_points dp
+            JOIN users u ON dp.awarded_by = u.id
+            JOIN users user_info ON dp.user_id = user_info.id
+            WHERE 1=1
+        `;
+        const params = [];
+        
+        if (userId) {
+            query += ' AND dp.user_id = ?';
+            params.push(userId);
+        }
+        
+        if (pointType) {
+            query += ' AND dp.point_type = ?';
+            params.push(pointType);
+        }
+        
+        query += ' ORDER BY dp.created_at DESC';
+        
+        const [points] = await pool.execute(query, params);
+        return points;
+    }
+
+    /**
+     * 기숙사 규칙 위반 기록
+     */
+    static async recordViolation(userId, violationType, description, penaltyPoints, recordedBy, autoSuspend = false, suspensionDays = 0) {
+        try {
+            // 위반 기록 추가
+            await pool.execute(
+                `INSERT INTO dormitory_violations 
+                 (user_id, violation_type, description, penalty_points, auto_suspended, suspension_days, recorded_by)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                [userId, violationType, description, penaltyPoints, autoSuspend, suspensionDays, recordedBy]
+            );
+            
+            // 벌점 추가 (addDormitoryPoints는 자체 트랜잭션 관리)
+            if (penaltyPoints > 0) {
+                await this.addDormitoryPoints(userId, 'penalty', penaltyPoints, description, violationType, recordedBy);
+            }
+            
+            // 자동 정지 (벌점 추가 후 별도로 처리)
+            if (autoSuspend && suspensionDays > 0) {
+                const endDate = new Date();
+                endDate.setDate(endDate.getDate() + suspensionDays);
+                await this.updateUserStatus(
+                    userId,
+                    'suspended',
+                    `기숙사 규칙 위반: ${description}`,
+                    endDate
+                );
+            }
+        } catch (error) {
+            console.error('위반 기록 오류:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 기숙사 위반 기록 조회
+     * @param {string|null} userId - 사용자 ID (null이면 모든 사용자의 기록 조회)
+     */
+    static async getViolations(userId = null) {
+        let query = `
+            SELECT dv.*, 
+                   u.display_name, 
+                   u.email,
+                   recorder.display_name as recorded_by_name
+            FROM dormitory_violations dv
+            JOIN users u ON dv.user_id = u.id
+            JOIN users recorder ON dv.recorded_by = recorder.id
+            WHERE 1=1
+        `;
+        const params = [];
+        
+        if (userId) {
+            query += ' AND dv.user_id = ?';
+            params.push(userId);
+        }
+        
+        query += ' ORDER BY dv.created_at DESC';
+        
+        const [violations] = await pool.execute(query, params);
+        return violations;
+    }
+
+    /**
+     * 기숙사 통계 조회
+     */
+    static async getDormitoryStats() {
+        const [stats] = await pool.execute(`
+            SELECT 
+                (SELECT COUNT(*) FROM dormitory_students WHERE is_active = TRUE) as active_students,
+                (SELECT COUNT(*) FROM leave_requests WHERE status = 'pending') as pending_requests,
+                (SELECT COUNT(*) FROM leave_requests WHERE status = 'approved' AND DATE(start_datetime) = CURDATE()) as today_leaves,
+                (SELECT COUNT(*) FROM dormitory_violations WHERE DATE(created_at) = CURDATE()) as today_violations,
+                (SELECT SUM(total_penalty_points) FROM dormitory_students) as total_penalty_points
+        `);
+        return stats[0];
     }
 }
 
