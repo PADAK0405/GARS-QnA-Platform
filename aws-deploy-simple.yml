@@ -223,15 +223,60 @@ Resources:
           # Install dependencies
           npm install
           
-          # Create environment file
+          # Install AWS CLI for RDS endpoint discovery
+          yum install -y aws-cli
+          
+          # Wait for RDS to be available
+          echo "Waiting for RDS database to be ready..."
+          sleep 60
+          
+          # Get RDS endpoint using AWS CLI
+          # Try multiple methods to get the endpoint
+          DB_ENDPOINT=""
+          
+          # Method 1: Direct RDS query by identifier
+          DB_ENDPOINT=$(aws rds describe-db-instances --db-instance-identifier gars-database --query 'DBInstances[0].Endpoint.Address' --output text --region ${AWS::Region} 2>/dev/null || echo "")
+          
+          # Method 2: Query all RDS instances and find gars-database
+          if [ -z "$DB_ENDPOINT" ]; then
+            DB_ENDPOINT=$(aws rds describe-db-instances --query 'DBInstances[?contains(DBInstanceIdentifier, `gars`) || contains(DBInstanceIdentifier, `GARS`)].Endpoint.Address' --output text --region ${AWS::Region} 2>/dev/null | head -1)
+          fi
+          
+          # Method 3: Get from CloudFormation stack outputs
+          if [ -z "$DB_ENDPOINT" ]; then
+            STACK_NAME=$(aws cloudformation describe-stacks --query 'Stacks[?contains(StackName, `GARS`) || contains(StackName, `gars`)].StackName' --output text --region ${AWS::Region} 2>/dev/null | head -1)
+            if [ ! -z "$STACK_NAME" ]; then
+              DB_ENDPOINT=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query 'Stacks[0].Outputs[?OutputKey==`DatabaseEndpoint`].OutputValue' --output text --region ${AWS::Region} 2>/dev/null || echo "")
+            fi
+          fi
+          
+          # If still empty, log error but continue (will need manual configuration)
+          if [ -z "$DB_ENDPOINT" ]; then
+            echo "WARNING: Could not automatically detect RDS endpoint. Please configure .env file manually."
+            DB_ENDPOINT="YOUR_RDS_ENDPOINT_HERE"
+          fi
+          
+          # Create environment file with RDS endpoint
           cat > .env << EOF
           NODE_ENV=production
           PORT=3000
-          DB_HOST=${Database.Endpoint.Address}
+          DB_HOST=$DB_ENDPOINT
+          DB_PORT=3306
           DB_USER=admin
           DB_PASSWORD=${DatabasePassword}
           DB_NAME=qna_hub
+          DB_CONNECTION_LIMIT=10
+          DB_QUEUE_LIMIT=0
           EOF
+          
+          # Display DB_HOST for debugging
+          echo "========================================="
+          echo "Database Configuration:"
+          echo "DB_HOST=$DB_ENDPOINT"
+          echo "DB_USER=admin"
+          echo "DB_NAME=qna_hub"
+          echo "========================================="
+          cat .env
           
           # Start the application
           pm2 start server.js --name gars-app
