@@ -29,6 +29,7 @@ async function initializeServer() {
         const initTasks = [
             { name: '데이터베이스 스키마 업데이트', fn: updateDatabaseSchema },
             { name: '포인트 시스템 스키마 업데이트', fn: updatePointsSchema },
+            { name: 'Google OAuth ID 스키마 업데이트', fn: updateGoogleIdSchema },
             { name: '신고 시스템 테이블 생성', fn: createReportsTable },
             { name: '사용자 레벨 시스템 초기화', fn: migrateUserLevels },
             { name: '캘린더 테이블 생성', fn: createCalendarTable },
@@ -125,6 +126,23 @@ async function updatePointsSchema() {
         console.log('  ✅ 포인트 시스템 스키마 업데이트 완료');
     } catch (error) {
         console.error('  ❌ 포인트 시스템 스키마 업데이트 실패:', error);
+        throw error;
+    }
+}
+
+/**
+ * Google OAuth ID 스키마 업데이트
+ * google_id 컬럼 추가 및 기존 데이터 마이그레이션
+ * @async
+ * @throws {Error} Google OAuth ID 스키마 업데이트 실패 시
+ */
+async function updateGoogleIdSchema() {
+    try {
+        const updateGoogleId = require('./scripts/update-schema-google-id');
+        await updateGoogleId();
+        console.log('  ✅ Google OAuth ID 스키마 업데이트 완료');
+    } catch (error) {
+        console.error('  ❌ Google OAuth ID 스키마 업데이트 실패:', error);
         throw error;
     }
 }

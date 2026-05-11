@@ -19,7 +19,7 @@ class Database {
         const connection = await pool.getConnection();
         try {
             const [users] = await connection.execute(
-                'SELECT * FROM users WHERE id = ?',
+                'SELECT * FROM users WHERE google_id = ?',
                 [googleProfile.id]
             );
 
@@ -37,12 +37,12 @@ class Database {
                          null;
 
             await connection.execute(
-                'INSERT INTO users (id, display_name, email, score, level, experience, points) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                'INSERT INTO users (google_id, display_name, email, score, level, experience, points) VALUES (?, ?, ?, ?, ?, ?, ?)',
                 [googleProfile.id, displayName, email, 0, 1, 0, 0]
             );
 
             const [newUser] = await connection.execute(
-                'SELECT * FROM users WHERE id = ?',
+                'SELECT * FROM users WHERE google_id = ?',
                 [googleProfile.id]
             );
 
