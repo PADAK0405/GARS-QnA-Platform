@@ -551,7 +551,7 @@ const loginLimiter = rateLimit({
 // ========== Google OAuth 설정 ==========
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-const CALLBACK_URL = process.env.CALLBACK_URL || 'http://localhost:3000/auth/google/callback';
+const CALLBACK_URL = process.env.CALLBACK_URL || 'https://gaonqanda.shop/auth/google/callback';
 
 /**
  * 세션 보안 설정
