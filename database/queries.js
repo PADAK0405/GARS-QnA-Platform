@@ -18,9 +18,15 @@ class Database {
     static async findOrCreateUser(googleProfile) {
         const connection = await pool.getConnection();
         try {
+            // 디버깅: profile.id 타입 확인
+            console.log(typeof googleProfile.id, googleProfile.id);
+
+            // google_id를 문자열로 강제 변환
+            const googleId = String(googleProfile.id);
+
             const [users] = await connection.execute(
                 'SELECT * FROM users WHERE google_id = ?',
-                [googleProfile.id]
+                [googleId]
             );
 
             if (users.length > 0) {
@@ -36,14 +42,17 @@ class Database {
                          googleProfile._json?.email || 
                          null;
 
+            // 디버깅: 변환된 googleId 타입 확인
+            console.log(typeof googleId, googleId);
+
             await connection.execute(
                 'INSERT INTO users (google_id, display_name, email, score, level, experience, points) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                [googleProfile.id, displayName, email, 0, 1, 0, 0]
+                [googleId, displayName, email, 0, 1, 0, 0]
             );
 
             const [newUser] = await connection.execute(
                 'SELECT * FROM users WHERE google_id = ?',
-                [googleProfile.id]
+                [googleId]
             );
 
             return newUser[0];
