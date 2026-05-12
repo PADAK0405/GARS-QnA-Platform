@@ -8,6 +8,8 @@ USE qna_hub;
 -- 사용자 테이블
 CREATE TABLE IF NOT EXISTS users (
     id VARCHAR(255) PRIMARY KEY,
+    google_id VARCHAR(255) UNIQUE,
+    username VARCHAR(255),
     display_name VARCHAR(255) NOT NULL,
     email VARCHAR(255),
     score INT DEFAULT 0,

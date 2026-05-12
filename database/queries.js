@@ -42,12 +42,15 @@ class Database {
                          googleProfile._json?.email || 
                          null;
 
+            // username은 Google 이메일 앞부분 사용
+            const username = googleProfile.emails?.[0]?.value?.split('@')[0] || null;
+
             // 디버깅: 변환된 googleId 타입 확인
             console.log(typeof googleId, googleId);
 
             await connection.execute(
-                'INSERT INTO users (google_id, display_name, email, score, level, experience, points) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                [googleId, displayName, email, 0, 1, 0, 0]
+                'INSERT INTO users (google_id, username, display_name, email, score, level, experience, points) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                [googleId, username, displayName, email, 0, 1, 0, 0]
             );
 
             const [newUser] = await connection.execute(
