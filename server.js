@@ -204,13 +204,13 @@ async function createReportsTable() {
         const createTableQuery = `
             CREATE TABLE IF NOT EXISTS reports (
                 id INT AUTO_INCREMENT PRIMARY KEY,
-                reporter_id VARCHAR(255) NOT NULL,
+                reporter_id INT NOT NULL,
                 target_type ENUM('question', 'answer', 'user') NOT NULL,
                 target_id INT NOT NULL,
                 reason ENUM('spam', 'inappropriate', 'harassment', 'violence', 'copyright', 'other') NOT NULL,
                 description TEXT,
                 status ENUM('pending', 'reviewed', 'resolved', 'dismissed') DEFAULT 'pending',
-                reviewed_by VARCHAR(255) NULL,
+                reviewed_by INT NULL,
                 reviewed_at TIMESTAMP NULL,
                 admin_notes TEXT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -294,7 +294,7 @@ async function createDormitoryTables() {
         const createDormitoryStudentsTable = `
             CREATE TABLE IF NOT EXISTS dormitory_students (
                 id INT AUTO_INCREMENT PRIMARY KEY,
-                user_id VARCHAR(255) NOT NULL,
+                user_id INT NOT NULL,
                 building VARCHAR(50) NOT NULL,
                 floor INT NOT NULL,
                 room VARCHAR(50) NOT NULL,
@@ -316,7 +316,7 @@ async function createDormitoryTables() {
         const createLeaveRequestsTable = `
             CREATE TABLE IF NOT EXISTS leave_requests (
                 id INT AUTO_INCREMENT PRIMARY KEY,
-                user_id VARCHAR(255) NOT NULL,
+                user_id INT NOT NULL,
                 request_type ENUM('day_off', 'overnight') NOT NULL COMMENT 'day_off: 외출, overnight: 외박',
                 start_datetime DATETIME NOT NULL,
                 end_datetime DATETIME NOT NULL,
@@ -324,7 +324,7 @@ async function createDormitoryTables() {
                 destination VARCHAR(255),
                 emergency_contact VARCHAR(100),
                 status ENUM('pending', 'approved', 'rejected', 'cancelled') DEFAULT 'pending',
-                approved_by VARCHAR(255) NULL,
+                approved_by INT NULL,
                 approved_at TIMESTAMP NULL,
                 rejection_reason TEXT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -342,12 +342,12 @@ async function createDormitoryTables() {
         const createDormitoryPointsTable = `
             CREATE TABLE IF NOT EXISTS dormitory_points (
                 id INT AUTO_INCREMENT PRIMARY KEY,
-                user_id VARCHAR(255) NOT NULL,
+                user_id INT NOT NULL,
                 point_type ENUM('penalty', 'reward') NOT NULL,
                 points INT NOT NULL,
                 reason TEXT NOT NULL,
                 category VARCHAR(100) COMMENT '위반/수상 카테고리',
-                awarded_by VARCHAR(255) NOT NULL,
+                awarded_by INT NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
                 FOREIGN KEY (awarded_by) REFERENCES users(id) ON DELETE CASCADE,
@@ -361,13 +361,13 @@ async function createDormitoryTables() {
         const createDormitoryViolationsTable = `
             CREATE TABLE IF NOT EXISTS dormitory_violations (
                 id INT AUTO_INCREMENT PRIMARY KEY,
-                user_id VARCHAR(255) NOT NULL,
+                user_id INT NOT NULL,
                 violation_type VARCHAR(100) NOT NULL,
                 description TEXT NOT NULL,
                 penalty_points INT DEFAULT 0,
                 auto_suspended BOOLEAN DEFAULT FALSE,
                 suspension_days INT DEFAULT 0,
-                recorded_by VARCHAR(255) NOT NULL,
+                recorded_by INT NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
                 FOREIGN KEY (recorded_by) REFERENCES users(id) ON DELETE CASCADE,

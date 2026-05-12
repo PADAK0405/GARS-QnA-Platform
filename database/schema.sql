@@ -1,5 +1,6 @@
 -- QnA Hub Database Schema
 -- MySQL 8.0+
+-- 최종 스키마 (코드 기준으로 모든 타입/컬럼 동기화)
 
 -- 데이터베이스 생성
 CREATE DATABASE IF NOT EXISTS qna_hub CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -22,6 +23,7 @@ CREATE TABLE IF NOT EXISTS users (
     role ENUM('user', 'moderator', 'admin', 'super_admin') DEFAULT 'user',
     status ENUM('active', 'suspended', 'banned') DEFAULT 'active',
     suspended_until TIMESTAMP NULL,
+    suspended_at TIMESTAMP NULL,
     suspension_reason TEXT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -42,7 +44,7 @@ CREATE TABLE IF NOT EXISTS questions (
     content TEXT NOT NULL,
     views INT DEFAULT 0,
     status ENUM('active', 'hidden', 'deleted') DEFAULT 'active',
-    hidden_by VARCHAR(255) NULL,
+    hidden_by INT NULL,
     hidden_reason TEXT NULL,
     hidden_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -60,10 +62,10 @@ CREATE TABLE IF NOT EXISTS questions (
 CREATE TABLE IF NOT EXISTS answers (
     id INT AUTO_INCREMENT PRIMARY KEY,
     question_id INT NOT NULL,
-    user_id VARCHAR(255) NOT NULL,
+    user_id INT NOT NULL,
     content TEXT NOT NULL,
     status ENUM('active', 'hidden', 'deleted') DEFAULT 'active',
-    hidden_by VARCHAR(255) NULL,
+    hidden_by INT NULL,
     hidden_reason TEXT NULL,
     hidden_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -88,7 +90,7 @@ CREATE TABLE IF NOT EXISTS images (
     INDEX idx_created_at (created_at DESC)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 세션 테이블 (선택사항 - express-mysql-session 사용 시)
+-- 세션 테이블 (express-mysql-session 사용)
 CREATE TABLE IF NOT EXISTS sessions (
     session_id VARCHAR(128) COLLATE utf8mb4_bin NOT NULL,
     expires INT UNSIGNED NOT NULL,
@@ -99,9 +101,9 @@ CREATE TABLE IF NOT EXISTS sessions (
 -- 관리자 로그 테이블
 CREATE TABLE IF NOT EXISTS admin_logs (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    admin_id VARCHAR(255) NOT NULL,
-    action_type ENUM('user_suspend', 'user_ban', 'user_unban', 'question_hide', 'question_restore', 'answer_hide', 'answer_restore', 'role_change', 'content_delete') NOT NULL,
-    target_type ENUM('user', 'question', 'answer') NOT NULL,
+    admin_id INT NOT NULL,
+    action_type ENUM('user_suspend', 'user_ban', 'user_unban', 'question_hide', 'question_restore', 'answer_hide', 'answer_restore', 'role_change', 'content_delete', 'server_initialize', 'server_initialize_failed') NOT NULL,
+    target_type ENUM('user', 'question', 'answer', 'system') NOT NULL,
     target_id VARCHAR(255) NOT NULL,
     reason TEXT,
     details JSON,
@@ -116,13 +118,13 @@ CREATE TABLE IF NOT EXISTS admin_logs (
 -- 신고 테이블
 CREATE TABLE IF NOT EXISTS reports (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    reporter_id VARCHAR(255) NOT NULL,
+    reporter_id INT NOT NULL,
     target_type ENUM('question', 'answer', 'user') NOT NULL,
     target_id INT NOT NULL,
     reason ENUM('spam', 'inappropriate', 'harassment', 'violence', 'copyright', 'other') NOT NULL,
     description TEXT,
     status ENUM('pending', 'reviewed', 'resolved', 'dismissed') DEFAULT 'pending',
-    reviewed_by VARCHAR(255) NULL,
+    reviewed_by INT NULL,
     reviewed_at TIMESTAMP NULL,
     admin_notes TEXT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -136,10 +138,23 @@ CREATE TABLE IF NOT EXISTS reports (
     UNIQUE KEY unique_user_report (reporter_id, target_type, target_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 캘린더 이벤트 테이블
+CREATE TABLE IF NOT EXISTS calendar_events (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    date DATE NOT NULL,
+    time TIME NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_date (date),
+    INDEX idx_created_at (created_at DESC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- 기숙사생 정보 테이블
 CREATE TABLE IF NOT EXISTS dormitory_students (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id VARCHAR(255) NOT NULL,
+    user_id INT NOT NULL,
     building VARCHAR(50) NOT NULL,
     floor INT NOT NULL,
     room VARCHAR(50) NOT NULL,
@@ -159,7 +174,7 @@ CREATE TABLE IF NOT EXISTS dormitory_students (
 -- 외출/외박 신청 테이블
 CREATE TABLE IF NOT EXISTS leave_requests (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id VARCHAR(255) NOT NULL,
+    user_id INT NOT NULL,
     request_type ENUM('day_off', 'overnight') NOT NULL COMMENT 'day_off: 외출, overnight: 외박',
     start_datetime DATETIME NOT NULL,
     end_datetime DATETIME NOT NULL,
@@ -167,7 +182,7 @@ CREATE TABLE IF NOT EXISTS leave_requests (
     destination VARCHAR(255),
     emergency_contact VARCHAR(100),
     status ENUM('pending', 'approved', 'rejected', 'cancelled') DEFAULT 'pending',
-    approved_by VARCHAR(255) NULL,
+    approved_by INT NULL,
     approved_at TIMESTAMP NULL,
     rejection_reason TEXT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -183,12 +198,12 @@ CREATE TABLE IF NOT EXISTS leave_requests (
 -- 벌점/상점 기록 테이블
 CREATE TABLE IF NOT EXISTS dormitory_points (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id VARCHAR(255) NOT NULL,
+    user_id INT NOT NULL,
     point_type ENUM('penalty', 'reward') NOT NULL,
     points INT NOT NULL,
     reason TEXT NOT NULL,
     category VARCHAR(100) COMMENT '위반/수상 카테고리',
-    awarded_by VARCHAR(255) NOT NULL,
+    awarded_by INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (awarded_by) REFERENCES users(id) ON DELETE CASCADE,
@@ -200,13 +215,13 @@ CREATE TABLE IF NOT EXISTS dormitory_points (
 -- 기숙사 규칙 위반 기록 테이블
 CREATE TABLE IF NOT EXISTS dormitory_violations (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id VARCHAR(255) NOT NULL,
+    user_id INT NOT NULL,
     violation_type VARCHAR(100) NOT NULL,
     description TEXT NOT NULL,
     penalty_points INT DEFAULT 0,
     auto_suspended BOOLEAN DEFAULT FALSE,
     suspension_days INT DEFAULT 0,
-    recorded_by VARCHAR(255) NOT NULL,
+    recorded_by INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (recorded_by) REFERENCES users(id) ON DELETE CASCADE,
