@@ -10,11 +10,9 @@
     <meta name="description" content="Gaon QandA에서 궁금한 점을 질문하고 커뮤니티의 도움을 받아보세요">
 </head>
 <body>
-    <nav class="navbar">
-        <a href="/" class="navbar-brand">Gaon QandA</a>
-        <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
-        <div id="auth-container"></div>
-    </nav>
+    <!-- 네비게이션 바 컨테이너 -->
+    <div id="navbar-container"></div>
+    
     <div class="container">
         <h1 class="page-title">새로운 질문하기</h1>
         <div class="card" id="question-form">
@@ -36,8 +34,9 @@
         </div>
     </div>
     <script src="protection.js"></script>
-    <script src="script.js"></script>
     <script src="csrf.js"></script>
+    <script src="js/navbar.js"></script>
+    <script src="script.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', setupAskPage);
         

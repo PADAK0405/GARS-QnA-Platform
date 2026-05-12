@@ -13,6 +13,7 @@ const crypto = require('crypto');
 require('dotenv').config();
 
 const Database = require('./database/queries');
+const DatabaseMigration = require('./database/auto-migrate');
 const geminiAI = require('./utils/gemini-ai');
 const securityLogger = require('./utils/security-logger');
 
@@ -26,6 +27,13 @@ async function initializeServer() {
     console.log('🚀 서버 초기화 시작');
     
     try {
+        // 0. 자동 마이그레이션 실행 (최우선)
+        console.log('📊 자동 데이터베이스 마이그레이션 실행 중...');
+        const migrationResult = await DatabaseMigration.runMigrations();
+        if (!migrationResult.success) {
+            throw new Error(`마이그레이션 실패: ${migrationResult.error}`);
+        }
+        
         // 초기화 작업 목록 정의
         const initTasks = [
             { name: '데이터베이스 스키마 업데이트', fn: updateDatabaseSchema },

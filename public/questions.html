@@ -89,11 +89,9 @@
     </style>
 </head>
 <body>
-    <nav class="navbar">
-        <a href="/" class="navbar-brand">Gaon QandA</a>
-        <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
-        <div id="auth-container"></div>
-    </nav>
+    <!-- 네비게이션 바 컨테이너 -->
+    <div id="navbar-container"></div>
+    
     <div class="container">
         <div class="page-header">
             <h1 class="page-title">최신 질문</h1>
@@ -106,6 +104,7 @@
     <a href="/ask.html" class="fab" title="질문하기" id="ask-fab">+</a>
     <script src="protection.js"></script>
     <script src="csrf.js"></script>
+    <script src="js/navbar.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
