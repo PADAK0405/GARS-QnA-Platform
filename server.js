@@ -71,6 +71,11 @@ async function updateDatabaseSchema() {
             errorCodes: ['ER_DUP_FIELDNAME']
         },
         { 
+            query: "ALTER TABLE users ADD COLUMN login_provider ENUM('local', 'google') DEFAULT 'google'",
+            description: 'login_provider 컬럼',
+            errorCodes: ['ER_DUP_FIELDNAME']
+        },
+        { 
             query: 'ALTER TABLE users ADD COLUMN level INT DEFAULT 1',
             description: 'level 컬럼',
             errorCodes: ['ER_DUP_FIELDNAME']

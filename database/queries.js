@@ -42,8 +42,21 @@ class Database {
                          googleProfile._json?.email || 
                          null;
 
-            // username은 Google 이메일 앞부분 사용
-            const username = googleProfile.emails?.[0]?.value?.split('@')[0] || null;
+            // username은 Google 이메일 앞부분 사용, 중복 시 suffix 추가
+            let baseUsername = googleProfile.emails?.[0]?.value?.split('@')[0] || 'user';
+            let username = baseUsername;
+            let counter = 1;
+            
+            // 중복 username 체크 및 suffix 추가
+            while (true) {
+                const [existing] = await connection.execute(
+                    'SELECT id FROM users WHERE username = ?',
+                    [username]
+                );
+                if (existing.length === 0) break;
+                username = `${baseUsername}_${counter}`;
+                counter++;
+            }
 
             // OAuth 사용자용 더미 패스워드
             const password = 'GOOGLE_OAUTH_USER';
@@ -52,8 +65,8 @@ class Database {
             console.log(typeof googleId, googleId);
 
             await connection.execute(
-                'INSERT INTO users (google_id, username, password, display_name, email, score, level, experience, points) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                [googleId, username, password, displayName, email, 0, 1, 0, 0]
+                'INSERT INTO users (google_id, username, password, login_provider, display_name, email, score, level, experience, points) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                [googleId, username, password, 'google', displayName, email, 0, 1, 0, 0]
             );
 
             const [newUser] = await connection.execute(
