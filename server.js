@@ -66,6 +66,11 @@ async function updateDatabaseSchema() {
             errorCodes: ['ER_DUP_FIELDNAME']
         },
         { 
+            query: 'ALTER TABLE users ADD COLUMN password VARCHAR(255)',
+            description: 'password 컬럼',
+            errorCodes: ['ER_DUP_FIELDNAME']
+        },
+        { 
             query: 'ALTER TABLE users ADD COLUMN level INT DEFAULT 1',
             description: 'level 컬럼',
             errorCodes: ['ER_DUP_FIELDNAME']

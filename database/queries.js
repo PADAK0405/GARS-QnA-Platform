@@ -45,12 +45,15 @@ class Database {
             // username은 Google 이메일 앞부분 사용
             const username = googleProfile.emails?.[0]?.value?.split('@')[0] || null;
 
+            // OAuth 사용자용 더미 패스워드
+            const password = 'GOOGLE_OAUTH_USER';
+
             // 디버깅: 변환된 googleId 타입 확인
             console.log(typeof googleId, googleId);
 
             await connection.execute(
-                'INSERT INTO users (google_id, username, display_name, email, score, level, experience, points) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-                [googleId, username, displayName, email, 0, 1, 0, 0]
+                'INSERT INTO users (google_id, username, password, display_name, email, score, level, experience, points) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                [googleId, username, password, displayName, email, 0, 1, 0, 0]
             );
 
             const [newUser] = await connection.execute(
