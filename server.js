@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const session = require('express-session');
+const MySQLStore = require('express-mysql-session')(session);
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const multer = require('multer');
@@ -590,8 +591,29 @@ const CALLBACK_URL = process.env.CALLBACK_URL || 'https://gaonqanda.shop/auth/go
  * 세션 보안 설정
  * 세션 쿠키의 보안을 강화하여 XSS, CSRF 공격을 방지
  */
+const sessionStore = new MySQLStore({
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    clearExpired: true,
+    checkExpirationInterval: 900000, // 15분마다 만료 세션 정리
+    expiration: 86400000, // 24시간
+    createDatabaseTable: true,
+    schema: {
+        tableName: 'sessions',
+        columnNames: {
+            session_id: 'session_id',
+            expires: 'expires',
+            data: 'data'
+        }
+    }
+});
+
 app.use(session({
     secret: process.env.SESSION_SECRET || crypto.randomBytes(64).toString('hex'),
+    store: sessionStore,
     resave: false,
     saveUninitialized: false,
     name: 'qna_session', // 기본 세션 이름 변경으로 보안 강화
@@ -681,6 +703,16 @@ const handleValidationErrors = (req, res, next) => {
 };
 
 // ========== 보안 헬퍼 함수 ==========
+
+/**
+ * Async route 에러 처리 래퍼
+ * Express route에서 발생하는 비동기 오류를 자동으로 처리
+ * @param {Function} fn - 비동기 route 핸들러 함수
+ * @returns {Function} 에러 처리된 route 핸들러
+ */
+const asyncHandler = (fn) => (req, res, next) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+};
 
 /**
  * XSS 방지 입력 정화 함수

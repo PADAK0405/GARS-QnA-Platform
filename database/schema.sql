@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS users (
 -- 질문 테이블
 CREATE TABLE IF NOT EXISTS questions (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id VARCHAR(255) NOT NULL,
+    user_id INT NOT NULL,
     title VARCHAR(500) NOT NULL,
     content TEXT NOT NULL,
     views INT DEFAULT 0,
