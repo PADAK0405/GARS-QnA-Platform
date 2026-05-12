@@ -1570,6 +1570,37 @@ class Database {
         `);
         return stats[0];
     }
+
+    /**
+     * AI 도우미 계정 가져오기 또는 생성
+     * users.id는 INT AUTO_INCREMENT로 자동 생성되고,
+     * username='ai-assistant'로 AI 여부를 구분합니다.
+     */
+    static async getOrCreateAIUser() {
+        // 기존 AI 사용자 확인
+        const [existingAI] = await pool.execute(
+            'SELECT * FROM users WHERE username = ?',
+            ['ai-assistant']
+        );
+
+        if (existingAI.length > 0) {
+            return existingAI[0];
+        }
+
+        // AI 사용자가 없으면 생성 (users.id는 자동 생성됨)
+        await pool.execute(
+            'INSERT INTO users (username, password, login_provider, display_name, email, score, level, experience, points) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            ['ai-assistant', 'SYSTEM_AI_ASSISTANT', 'system', 'AI 도우미', 'ai@gaonqanda.com', 0, 1, 0, 0]
+        );
+
+        // 생성된 AI 사용자 반환
+        const [newAI] = await pool.execute(
+            'SELECT * FROM users WHERE username = ?',
+            ['ai-assistant']
+        );
+
+        return newAI[0];
+    }
 }
 
 module.exports = Database;

@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
     google_id VARCHAR(255) UNIQUE,
     username VARCHAR(255),
     password VARCHAR(255),
-    login_provider ENUM('local', 'google') DEFAULT 'google',
+    login_provider ENUM('local', 'google', 'system') DEFAULT 'google',
     display_name VARCHAR(255) NOT NULL,
     email VARCHAR(255),
     score INT DEFAULT 0,

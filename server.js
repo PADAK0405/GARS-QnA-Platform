@@ -1145,25 +1145,11 @@ async function generateAIAnswer(questionId, title, content, images) {
         }
         
         if (aiResponse) {
-            // AI 답변을 자동으로 등록 (AI 사용자로)
-            const aiUserId = 'ai-assistant';
-            
-            // AI 사용자가 없으면 생성
-            const aiUser = await Database.findUserById(aiUserId);
-            if (!aiUser) {
-                const connection = await require('./database/connection').getConnection();
-                try {
-                    await connection.execute(
-                        'INSERT INTO users (id, display_name, email, score) VALUES (?, ?, ?, ?)',
-                        [aiUserId, 'AI 도우미', 'ai@gaonqanda.com', 0]
-                    );
-                } finally {
-                    connection.release();
-                }
-            }
+            // AI 도우미 계정 가져오기 또는 생성
+            const aiUser = await Database.getOrCreateAIUser();
             
             // AI 답변 등록
-            await Database.createAnswer(questionId, aiUserId, aiResponse, []);
+            await Database.createAnswer(questionId, aiUser.id, aiResponse, []);
             console.log(`✅ AI 답변 생성 완료 (질문 #${questionId})`);
         }
     } catch (error) {
