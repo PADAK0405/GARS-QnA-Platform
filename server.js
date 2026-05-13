@@ -1285,7 +1285,7 @@ app.put('/api/questions/:id', async (req, res) => {
 app.get('/api/questions/:id', async (req, res) => {
     try {
         const questionId = parseInt(req.params.id);
-        const question = await Database.getQuestionById(questionId);
+        let question = await Database.getQuestionById(questionId);
         
         if (!question) {
             return res.status(404).json({ error: '질문을 찾을 수 없습니다.' });
@@ -1303,6 +1303,9 @@ app.get('/api/questions/:id', async (req, res) => {
             Database.incrementQuestionViews(questionId).catch(err => {
                 console.error('조회수 증가 실패:', err);
             });
+            
+            // 응답에 즉시 반영하기 위해 조회수 1 증가
+            question.views = (question.views || 0) + 1;
         }
         
         res.json(question);

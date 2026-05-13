@@ -265,10 +265,13 @@ class Database {
     static async getQuestionById(questionId) {
         const [questions] = await pool.execute(`
             SELECT 
-                q.*,
+                q.id, q.user_id, q.title, q.content, q.created_at, q.updated_at,
+                q.status, q.hidden_by, q.hidden_reason, q.hidden_at,
+                COALESCE(q.views, 0) as views,
                 u.display_name as author_name,
                 u.id as author_id,
-                u.email as author_email
+                u.email as author_email,
+                u.level as author_level
             FROM questions q
             LEFT JOIN users u ON q.user_id = u.id
             WHERE q.id = ?
@@ -276,13 +279,18 @@ class Database {
         
         if (questions[0]) {
             const question = questions[0];
+            
+            // 질문에 대한 답변과 이미지도 함께 조회하여 반환
+            const [answers, images] = await Promise.all([
+                this.getActiveAnswersByQuestionId(question.id),
+                this.getImagesByEntity('question', question.id)
+            ]);
+
             return {
                 ...question,
-                author: {
-                    id: question.author_id,
-                    name: question.author_name,
-                    email: question.author_email
-                }
+                images: images,
+                answers: answers,
+                author: { id: question.author_id, name: question.author_name, email: question.author_email, level: question.author_level }
             };
         }
         
@@ -1042,6 +1050,53 @@ class Database {
     }
 
     /**
+     * 인기 질문 조회 (조회수 순)
+     * @param {number} limit - 가져올 질문 수
+     */
+    static async getPopularQuestions(limit = 10) {
+        try {
+            const [questions] = await pool.execute(`
+                SELECT 
+                    q.id,
+                    q.title,
+                    q.content,
+                    COALESCE(q.views, 0) as views,
+                    q.created_at,
+                    q.status,
+                    u.id as author_id,
+                    u.display_name as author_name,
+                    u.level as author_level
+                FROM questions q
+                JOIN users u ON q.user_id = u.id
+                WHERE q.status = 'active' AND u.status = 'active'
+                ORDER BY views DESC, q.created_at DESC
+                LIMIT ?
+            `, [limit]);
+
+            const questionsWithDetails = await Promise.all(
+                questions.map(async (question) => {
+                    const [answers, questionImages] = await Promise.all([
+                        this.getActiveAnswersByQuestionId(question.id),
+                        this.getImagesByEntity('question', question.id)
+                    ]);
+
+                    return {
+                        ...question,
+                        author: { id: question.author_id, name: question.author_name, level: question.author_level },
+                        images: questionImages,
+                        answers: answers
+                    };
+                })
+            );
+
+            return questionsWithDetails;
+        } catch (error) {
+            console.error('인기 질문 목록 조회 오류:', error);
+            throw error;
+        }
+    }
+
+    /**
      * 질문 조회수 증가
      */
     static async incrementQuestionViews(questionId) {
@@ -1604,4 +1659,3 @@ class Database {
 }
 
 module.exports = Database;
-
