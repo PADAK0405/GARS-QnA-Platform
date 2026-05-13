@@ -1018,6 +1018,19 @@ app.get('/api/questions', async (req, res) => {
     }
 });
 
+// 인기 질문 목록 조회
+app.get('/api/questions/popular', async (req, res) => {
+    try {
+        // 클라이언트에서 limit 파라미터로 개수 조절 가능 (기본 10개)
+        const limit = parseInt(req.query.limit) || 10;
+        const questions = await Database.getPopularQuestions(limit);
+        res.json(questions);
+    } catch (error) {
+        console.error('인기 질문 조회 오류:', error);
+        res.status(500).json({ error: '인기 질문을 불러올 수 없습니다.' });
+    }
+});
+
 // 관리자용 질문 목록 조회 (모든 상태 포함)
 app.get('/api/admin/questions', requireAdmin, async (req, res) => {
     try {

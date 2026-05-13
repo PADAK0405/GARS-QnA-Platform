@@ -1,0 +1,267 @@
+/*
+ * Gaon Q&A Rebranding Stylesheet
+ * Goal: Eliminate "Generic AI-generated look"
+ * Principles: Editorial, Asymmetry, Raw, Minimal
+ */
+
+/* ================================================== */
+/* 1. 색상 및 질감 (Color & Texture) */
+/* ================================================== */
+
+:root {
+    /* Anti-AI Palette: Off-white, Deep Charcoal, Muted Accent */
+    --bg-color: #F9F9F9;
+    --text-color: #1A1A1B;
+    --accent-color: #B45309; /* Burnt Orange */
+    --border-color: rgba(26, 26, 27, 0.15);
+
+    /* Typography System */
+    --font-sans: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
+    --font-serif: "Iropke Batang", "Georgia", "Times New Roman", serif; /* 헤드라인용 Serif 폰트 */
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: var(--font-sans);
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+
+    /* Strict Scale: 텍스트 밀도감 향상 */
+    letter-spacing: -0.03em;
+}
+
+/* Texture: 미세한 grainy noise 효과 추가 */
+body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAMAAAAp4XiDAAAAUVBMVEWFhYWDg4N3d3dtbW17e3t1dXWBgYGHh4d5eXlzc3OLi4ubm5uVlZWPj4+NjY19fX2JiYl/f39ra2uRkZGZmZlpaWmXl5dvb29xcXGTk5NnZ2c8TV1mAAAAG3RSTlNAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEAvEOwtAAAAFVJFREFUSL7lwAENAAEMAqr/t3kLwAhgAQBBgA8AAAAAElFTkSuQmCC');
+    opacity: 0.04;
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* ================================================== */
+/* 2. 타이포그래피 (Typography - Editorial Style) */
+/* ================================================== */
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-serif);
+    font-weight: 700;
+    letter-spacing: -0.05em;
+    margin: 0;
+}
+
+/* Hierarchy: 제목과 본문의 대비 극대화 */
+.hero-title {
+    font-size: clamp(48px, 5vw, 80px); /* 반응형 폰트 사이즈 */
+    line-height: 1.1;
+}
+
+.section-title {
+    font-size: 42px;
+    margin-bottom: 48px;
+}
+
+.card-title {
+    font-size: 22px;
+    font-family: var(--font-sans);
+    font-weight: 600;
+    letter-spacing: -0.04em;
+}
+
+p {
+    font-size: 15px;
+    line-height: 1.7;
+    color: #4B4A4C;
+}
+
+a {
+    color: var(--text-color);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+a:hover {
+    color: var(--accent-color);
+}
+
+/* ================================================== */
+/* 3. 레이아웃 (Layout - Breaking the Grid) */
+/* ================================================== */
+
+.container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+/* Whitespace: 섹션 간 여백 확대 */
+.section {
+    padding: 120px 0;
+}
+
+/* 네비게이션 바 */
+.site-header {
+    padding: 24px 0;
+    /* Surface: Solid Background + 1px Hairline Border */
+    border-bottom: 1px solid var(--border-color);
+    background-color: var(--bg-color);
+}
+
+.site-header .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo a {
+    font-family: var(--font-serif);
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.site-nav {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+}
+
+/* Hero Section */
+.hero-section .container {
+    /* Asymmetry: 왼쪽 정렬 기본 */
+    text-align: left;
+}
+
+.hero-subtitle {
+    font-size: 18px;
+    max-width: 600px;
+    margin-top: 24px;
+}
+
+.hero-actions {
+    margin-top: 48px;
+}
+
+/* Card Section */
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 32px;
+}
+
+/* 푸터 */
+.site-footer {
+    padding: 48px 0;
+    border-top: 1px solid var(--border-color);
+    font-size: 14px;
+    color: #6a6a6c;
+}
+
+.site-footer .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* ================================================== */
+/* 4. 컴포넌트 디테일 (Micro-details) */
+/* ================================================== */
+
+/* Buttons: 각진 모서리 */
+.btn {
+    display: inline-block;
+    padding: 12px 24px;
+    font-size: 15px;
+    font-weight: 600;
+    text-align: center;
+    border-radius: 4px; /* 각진 모서리 */
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background-color: var(--text-color);
+    color: var(--bg-color);
+    border-color: var(--text-color);
+}
+
+.btn-primary:hover {
+    background-color: var(--accent-color);
+    border-color: var(--accent-color);
+    color: var(--bg-color);
+}
+
+.btn-secondary {
+    background-color: transparent;
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+
+.btn-secondary:hover {
+    background-color: var(--text-color);
+    color: var(--bg-color);
+    border-color: var(--text-color);
+}
+
+/* Card Design: 그림자 없는 카드, 호버 시 Hard Shadow */
+.card {
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+    transform: translate(-4px, -4px);
+    /* Brutalism Style Hard Shadow */
+    box-shadow: 4px 4px 0px var(--text-color);
+}
+
+.card-body {
+    padding: 24px;
+    flex-grow: 1;
+}
+
+.card-content {
+    margin-top: 12px;
+}
+
+.card-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border-color);
+    font-size: 14px;
+    color: #6a6a6c;
+}
+
+/* Interaction: 페이지 로드 애니메이션 */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in-up {
+    /* 기본 상태를 애니메이션 시작점으로 설정 */
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+.fade-in-up.is-visible {
+    /* is-visible 클래스가 추가되면 애니메이션 실행 */
+    animation: fadeInUp 1s ease-out forwards;
+}
