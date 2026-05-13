@@ -1291,10 +1291,19 @@ app.get('/api/questions/:id', async (req, res) => {
             return res.status(404).json({ error: '질문을 찾을 수 없습니다.' });
         }
         
-        // 조회수 증가 (비동기로 처리하여 응답 속도 향상)
-        Database.incrementQuestionViews(questionId).catch(err => {
-            console.error('조회수 증가 실패:', err);
-        });
+        // 세션을 활용한 중복 조회수 증가 방지
+        if (!req.session.viewedQuestions) {
+            req.session.viewedQuestions = [];
+        }
+        
+        // 현재 세션에서 아직 조회하지 않은 질문인 경우에만 조회수 증가
+        if (!req.session.viewedQuestions.includes(questionId)) {
+            req.session.viewedQuestions.push(questionId);
+            // 조회수 증가 (비동기로 처리하여 응답 속도 향상)
+            Database.incrementQuestionViews(questionId).catch(err => {
+                console.error('조회수 증가 실패:', err);
+            });
+        }
         
         res.json(question);
     } catch (error) {
