@@ -29,7 +29,8 @@ class Navbar {
             await this.loadUserInfo();
             this.renderFullNavbar(navbarContainer);
         } catch (error) {
-            // 비인증 사용자 - 로그인 버튼 표시
+            // 사용자 정보 로드 실패 (비인증 또는 네트워크 오류)
+            console.warn('Navbar: 사용자 정보를 불러오지 못했습니다. 비로그인 상태로 표시합니다.', error.message);
             this.renderGuestNavbar(navbarContainer);
         }
     }
